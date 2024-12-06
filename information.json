@@ -1,0 +1,12 @@
+{
+    "id_name": "video_encoder",
+    "version": 5,
+    "author": "tom",
+    "name": "PHP Video encoder",
+    "description": "",
+    "dependencies": {
+        "conductor_client": 4,
+        "e_ffmpeg": 2,
+        "math": 2
+    }
+}
