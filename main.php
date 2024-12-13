@@ -1,33 +1,17 @@
 <?php
 class video_encoder{
     public static function encode_video(string $inPath, string $outPath, array $options = array()):bool{
-        $defaultOptions = array(
-            "outputResolutionWidth" => 1920,
-            "outputResolutionHeight" => 1080,
-            "outputVideoBitrate" => false,
-            "outputAudioBitrate" => false,
-            "outputAudioSampleRate" => false,
-            "saturation"=> false,
-            "framesPerSecond" => false,
-            "colorBitDepth" => false,
-            "NVENC" => false,
-            "cpuThreads" => false,
-            "qualityLoss" => 23,
-            "format" => false,
-            "realTime" => false
-        );
-        $outOptions = $defaultOptions;
-        foreach($defaultOptions as $defaultOption => $defaultOptionValue){
-            if(isset($options[$defaultOption])){
-                $outOptions[$defaultOption] = $options[$defaultOption];
+
+        if(isset($options['preset'])){
+            if(is_string($options['preset'])){
+                $presetOptions = self::loadPreset($options['preset']);
+                if(is_array($presetOptions)){
+                    $options = array_merge($presetOptions, $options);
+                }
             }
         }
-        unset($defaultOption);
-        unset($defaultOptionValue);
-        unset($defaultOptions);
-        unset($options);
-        $options = $outOptions;
-        unset($outOptions);
+        
+        $options = self::parseOptions($options);
 
         if(is_file($inPath)){
             $outPathFolder = files::getfileDir($outPath);
@@ -51,7 +35,7 @@ class video_encoder{
             if(is_int($options['qualityLoss'])){
                 $qLoss = intval($options['qualityLoss']);
                 if($qLoss < 1 || $qLoss > 51){
-                    $qLoss = 25;
+                    $qLoss = 24;
                 }
                 if($options['NVENC'] === true){
                     $command .= '-cq:v ';
@@ -494,5 +478,74 @@ class video_encoder{
             }
         }
         return false;
+    }
+    public static function init():void{
+        $defaultSettings = array(
+            "presetsPath" => "videoencoder/presets",
+        );
+        foreach($defaultSettings as $dsName => $dsValue){
+            settings::set($dsName,$dsValue,false);
+        }
+
+        if(!self::doesPresetExist("default")){
+            self::createPreset("default",array(),false);
+        }
+    }
+    public static function doesPresetExist(string $name):bool{
+        $path = self::presetPath($name);
+        if(!is_string($path)){
+            return false;
+        }
+        return is_file($path);
+    }
+    public static function loadPreset(string $name):array|false{
+        $path = self::presetPath($name);
+        if(!is_string($path)){
+            return false;
+        }
+        return json::readFile($path,false);
+    }
+    public static function createPreset(string $name, array $options = array(), $overwrite=true):bool{
+        $options = self::parseOptions($options);
+        $path = self::presetPath($name);
+        if(!is_string($path)){
+            return false;
+        }
+        return json::writeFile($path, $options, $overwrite);
+    }
+    private static function presetPath(string $name):string|false{
+        if(preg_match('/^[a-zA-Z0-9\s_-]+$/', $name) !== 1){
+            return false;
+        }
+        $path = settings::read("presetsPath");
+        if(!is_string($path)){
+            return false;
+        }
+        return $path . '/' . $name . '.json';
+    }
+    private static function parseOptions(array $options = array()):array|false{
+        $defaultOptions = array(
+            "outputResolutionWidth" => 1920,
+            "outputResolutionHeight" => 1080,
+            "outputVideoBitrate" => false,
+            "outputAudioBitrate" => false,
+            "outputAudioSampleRate" => false,
+            "saturation"=> false,
+            "framesPerSecond" => false,
+            "colorBitDepth" => 8,
+            "NVENC" => false,
+            "cpuThreads" => false,
+            "qualityLoss" => 23,
+            "format" => false,
+            "realTime" => false
+        );
+        $outOptions = $defaultOptions;
+        foreach($defaultOptions as $defaultOption => $defaultOptionValue){
+            if(isset($options[$defaultOption])){
+                $outOptions[$defaultOption] = $options[$defaultOption];
+            }
+        }
+        
+        return $outOptions;
     }
 }

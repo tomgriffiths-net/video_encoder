@@ -1,12 +1,13 @@
 {
     "id_name": "video_encoder",
-    "version": 5,
+    "version": 6,
     "author": "tom",
-    "name": "PHP Video encoder",
-    "description": "",
+    "name": "Video encoder",
+    "description": "Added presets to allow for better conductor integration.",
     "dependencies": {
         "conductor_client": 4,
         "e_ffmpeg": 2,
-        "math": 2
+        "math": 2,
+        "settings": 2
     }
 }
