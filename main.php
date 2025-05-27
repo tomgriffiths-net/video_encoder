@@ -28,83 +28,88 @@ class video_encoder{
 
             $command .= '-i "' . $inPath . '" ';
 
-            if($options['NVENC'] === true){
-                $command .= '-c:v h264_nvenc ';
+            if(is_string($options['customArgs']) && !empty($options['customArgs'])){
+                $command .= $options['customArgs'] . " ";
             }
-
-            if(is_int($options['qualityLoss'])){
-                $qLoss = intval($options['qualityLoss']);
-                if($qLoss < 1 || $qLoss > 51){
-                    $qLoss = 24;
-                }
+            else{
                 if($options['NVENC'] === true){
-                    $command .= '-cq:v ';
+                    $command .= '-c:v h264_nvenc ';
                 }
-                else{
-                    $command .= '-crf ';
+    
+                if(is_int($options['qualityLoss'])){
+                    $qLoss = intval($options['qualityLoss']);
+                    if($qLoss < 1 || $qLoss > 51){
+                        $qLoss = 24;
+                    }
+                    if($options['NVENC'] === true){
+                        $command .= '-cq:v ';
+                    }
+                    else{
+                        $command .= '-crf ';
+                    }
+                    $command .= $qLoss . ' ';
                 }
-                $command .= $qLoss . ' ';
-            }
-
-            if(is_int($options['colorBitDepth'])){
-                $colorDepth = intval($options['colorBitDepth']);
-                $colorDepth = math::getClosest($colorDepth,array(8,10));
-                if($colorDepth === 10){
-                    $command .= '-pix_fmt yuv420p10le ';
+    
+                if(is_int($options['colorBitDepth'])){
+                    $colorDepth = intval($options['colorBitDepth']);
+                    $colorDepth = math::getClosest($colorDepth,array(8,10));
+                    if($colorDepth === 10){
+                        $command .= '-pix_fmt yuv420p10le ';
+                    }
+                    else{
+                        $command .= '-pix_fmt yuv420p ';
+                    }
                 }
-                else{
-                    $command .= '-pix_fmt yuv420p ';
+    
+                $command .= '-vf "';
+    
+                if(is_int($options['framesPerSecond'])){
+                    $fps = round(floatval($options['framesPerSecond']),3);
+                    if($fps < 1 || $fps > 1000){
+                        $fps = 29.97;
+                    }
+                    $command .= 'fps=' . $fps . ',';
                 }
-            }
-
-            $command .= '-vf "';
-
-            if(is_int($options['framesPerSecond'])){
-                $fps = round(floatval($options['framesPerSecond']),3);
-                if($fps < 1 || $fps > 1000){
-                    $fps = 29.97;
+    
+                $width = intval($options['outputResolutionWidth']);
+                $height = intval($options['outputResolutionHeight']);
+                if($width < 10 || $width > 8192){
+                    $width = 1920;
                 }
-                $command .= 'fps=' . $fps . ',';
-            }
-
-            $width = intval($options['outputResolutionWidth']);
-            $height = intval($options['outputResolutionHeight']);
-            if($width < 10 || $width > 8192){
-                $width = 1920;
-            }
-            if($height < 10|| $height > 4320){
-                $height = 1080;
-            }
-            $command .= 'scale='. $width .':'. $height .':force_original_aspect_ratio=decrease';
-            $command .= ',pad='. $width .':'. $height .':(ow-iw)/2:(oh-ih)/2';
-
-            if($options['saturation'] !== false){
-                $command .= ',eq=saturation=' . $options['saturation'];
-            }
-
-            $command .= ',setsar=1" ';
-
-            if(is_int($options['outputVideoBitrate'])){
-                $command .= '-b:v ' . $options['outputVideoBitrate'] . 'k ';
-            }
-
-            if(is_int($options['outputAudioBitrate'])){
-                $command .= '-b:a ' . $options['outputAudioBitrate'] . 'k ';
-            }
-            if(is_int($options['outputAudioSampleRate'])){
-                $command .= '-ar ' . $options['outputAudioSampleRate'] . ' ';
-            }
-
-            if(is_string($options['format'])){
-                $command .= '-f "' . $options['format'] . '" ';
-            }
-
-            if(is_int($options['cpuThreads'])){
-                $threads = intval($options['cpuThreads']);
-                if($threads < 1){
-                    $threads = 1;
+                if($height < 10|| $height > 4320){
+                    $height = 1080;
                 }
-                $command .= '-threads ' . $threads . ' ';
+                $command .= 'scale='. $width .':'. $height .':force_original_aspect_ratio=decrease';
+                $command .= ',pad='. $width .':'. $height .':(ow-iw)/2:(oh-ih)/2';
+    
+                if($options['saturation'] !== false){
+                    $command .= ',eq=saturation=' . $options['saturation'];
+                }
+    
+                $command .= ',setsar=1" ';
+    
+                if(is_int($options['outputVideoBitrate'])){
+                    $command .= '-b:v ' . $options['outputVideoBitrate'] . 'k ';
+                }
+    
+                if(is_int($options['outputAudioBitrate'])){
+                    $command .= '-b:a ' . $options['outputAudioBitrate'] . 'k ';
+                }
+                if(is_int($options['outputAudioSampleRate'])){
+                    $command .= '-ar ' . $options['outputAudioSampleRate'] . ' ';
+                }
+    
+                if(is_string($options['format'])){
+                    $command .= '-f "' . $options['format'] . '" ';
+                }
+    
+                if(is_int($options['cpuThreads'])){
+                    $threads = intval($options['cpuThreads']);
+                    if($threads < 1){
+                        $threads = 1;
+                    }
+                    $command .= '-threads ' . $threads . ' ';
+                }
             }
 
             $millistamp = time::millistamp();
@@ -112,7 +117,6 @@ class video_encoder{
             $command .= '"' . $tempOutName . '" -y';
 
             //mklog("general","FileEncode: Encoding " . $inPath . " (" . filesize($inPath) / (1024**3) . " GB)",false);
-
             exec($command);
 
             sleep(2);
@@ -122,7 +126,6 @@ class video_encoder{
             $jsonData = json::readFile($jsonPath);
             
             if(isset($jsonData['streams'][0]['codec_type'])){
-
                 $i = 0;
                 redo:
                 if(is_file($outPath)){
@@ -193,7 +196,7 @@ class video_encoder{
                     }
 
                     $bitrate = round($videoInfo['format']['bit_rate']/1024);
-                    if($bitrate < 4000){
+                    if($bitrate < 1000){
                         mklog("general","FolderEncode: Skipping " . $file . " as it has a low bitrate (" . $bitrate . " kb)",false);
                         goto end;
                     }
@@ -349,8 +352,6 @@ class video_encoder{
 
             $finalOutPath = str_replace($someNumber . "_TEMP.","",$outPath);
             rename($outPath,$finalOutPath);
-
-            $return = true;
 
             $doneFileEntry['format']['filename'] = $finalOutPath;
             json::writeFile($jobFolder . "\\" . time::millistamp() . ".json",$doneFileEntry);
@@ -537,7 +538,8 @@ class video_encoder{
             "cpuThreads" => false,
             "qualityLoss" => 23,
             "format" => false,
-            "realTime" => false
+            "realTime" => false,
+            "customArgs" => false
         );
         $outOptions = $defaultOptions;
         foreach($defaultOptions as $defaultOption => $defaultOptionValue){
@@ -549,3 +551,7 @@ class video_encoder{
         return $outOptions;
     }
 }
+
+//changed skip low bitrate in encodefolder to 1000
+
+//added customArgs option in encode_video which overrides ffmpeg options
