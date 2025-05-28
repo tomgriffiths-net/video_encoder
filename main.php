@@ -102,14 +102,14 @@ class video_encoder{
                 if(is_string($options['format'])){
                     $command .= '-f "' . $options['format'] . '" ';
                 }
-    
-                if(is_int($options['cpuThreads'])){
-                    $threads = intval($options['cpuThreads']);
-                    if($threads < 1){
-                        $threads = 1;
-                    }
-                    $command .= '-threads ' . $threads . ' ';
+            }
+
+            if(is_int($options['cpuThreads'])){
+                $threads = intval($options['cpuThreads']);
+                if($threads < 1){
+                    $threads = 1;
                 }
+                $command .= '-threads ' . $threads . ' ';
             }
 
             $millistamp = time::millistamp();
@@ -551,7 +551,3 @@ class video_encoder{
         return $outOptions;
     }
 }
-
-//changed skip low bitrate in encodefolder to 1000
-
-//added customArgs option in encode_video which overrides ffmpeg options
