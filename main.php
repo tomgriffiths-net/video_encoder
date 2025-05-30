@@ -196,7 +196,7 @@ class video_encoder{
                     }
 
                     $bitrate = round($videoInfo['format']['bit_rate']/1024);
-                    if($bitrate < 2000){
+                    if($bitrate < 2200){
                         mklog("general","FolderEncode: Skipping " . $file . " as it has a low bitrate (" . $bitrate . " kb)",false);
                         goto end;
                     }
