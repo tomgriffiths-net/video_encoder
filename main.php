@@ -116,6 +116,22 @@ class video_encoder{
             $tempOutName = $outPathFolder . '\\' . $outPathFileName . "_tmp" . $millistamp . $outPathFileExtension;
             $command .= '"' . $tempOutName . '" -y';
 
+            if(isset($options['commandIntoFile'])){
+                if($options['commandIntoFile'] === true){
+                    $commandFile = fopen('video_encoder-commandIntoFile.txt',"a");
+                    if(!$commandFile){
+                        mklog("warning","FileEncode: Failed to open file: video_encoder-commandIntoFile.txt",false);
+                        return false;
+                    }
+                    if(!fwrite($commandFile, $command . "\n")){
+                        mklog("warning","FileEncode: Failed to append to file: video_encoder-commandIntoFile.txt",false);
+                        return false;
+                    }
+                    fclose($commandFile);
+                    return true;
+                }
+            }
+
             //mklog("general","FileEncode: Encoding " . $inPath . " (" . filesize($inPath) / (1024**3) . " GB)",false);
             exec($command);
 
@@ -124,7 +140,8 @@ class video_encoder{
             $jsonPath = $tempOutName . '.json';
             exec('"' . e_ffmpeg::path('ffprobe') . '" -v quiet -print_format json -show_format -show_streams "' . $tempOutName . '">"' . $jsonPath . '"');
             $jsonData = json::readFile($jsonPath);
-            
+            unlink($jsonPath);
+
             if(isset($jsonData['streams'][0]['codec_type'])){
                 $i = 0;
                 redo:
@@ -140,8 +157,8 @@ class video_encoder{
                 }
 
                 rename($tempOutName, $outPath);
+                
                 skiprename:
-                unlink($jsonPath);
                 return true;
             }
             else{
@@ -546,6 +563,10 @@ class video_encoder{
             if(isset($options[$defaultOption])){
                 $outOptions[$defaultOption] = $options[$defaultOption];
             }
+        }
+
+        if(isset($options['commandIntoFile'])){
+            $outOptions['commandIntoFile'] = $options['commandIntoFile'];
         }
         
         return $outOptions;
