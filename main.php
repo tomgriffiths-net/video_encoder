@@ -13,6 +13,9 @@ class video_encoder{
         
         $options = self::parseOptions($options);
 
+        $secondTry = false;
+        secondtry:
+
         if(is_file($inPath)){
             $outPathFolder = files::getfileDir($outPath);
             $outPathFileExtension = "." . files::getFileExtension($outPath);
@@ -162,17 +165,24 @@ class video_encoder{
                 return true;
             }
             else{
+                sleep(2);
+                mklog("warning","Failed to encode " . $inPath,false);
                 if(is_file($tempOutName)){
-                    sleep(2);
-                    mklog("warning","Failed to encode " . $inPath,false);
-                    unlink($tempOutName);
+                    if(!unlink($tempOutName)){
+                        mklog("warning","FileEncode: Failed to delete failed encode file " . $tempOutName,false);
+                    }
+                }
+                if(!$secondTry && settings::read('secondTry') === true){
+                    $secondTry = true;
+                    mklog("general","FileEncode: Trying again to encode " . $inPath,false);
+                    goto secondtry;
                 }
             }
         }
 
         return false;
     }
-    public static function encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive = false, $jobId = false, array $videoTypes = array("mp4","mov","mkv","avi"), array $encodeOptions = array(), string $outFileExtension = "mp4", bool $deleteSourceAfter = false, bool $useConductor = false):bool{
+    public static function encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive = false, bool|string $jobId = false, array $videoTypes = array("mp4","mov","mkv","avi"), array $encodeOptions = array(), string $outFileExtension = "mp4", bool $deleteSourceAfter = false, bool $useConductor = false):bool{
         $return = false;
         $saturationModified = false;
         if(is_dir($sourceFolder)){
@@ -341,6 +351,17 @@ class video_encoder{
         return $return;
     }
     public static function afterFolderEncode($encodeSuccess,$file,$outPath,$deleteSourceAfter,$someNumber,$jobFolder):bool{
+
+        if(!is_string($file)){
+            mklog("warning","FolderEncode: Unable to finalize encode (typeError) for an unknown file",false);
+            return false;
+        }
+
+        if(!is_bool($encodeSuccess) || !is_string($outPath) || !is_bool($deleteSourceAfter) || (!is_string($someNumber) && !is_int($someNumber)) || !is_string($jobFolder)){
+            mklog("warning","FolderEncode: Unable to finalize encode (typeError) for " . $file,false);
+            return false;
+        }
+
         if($encodeSuccess){
 
             $fileSize = filesize($file);
@@ -356,7 +377,9 @@ class video_encoder{
 
             if($outPathSize >= $fileSize){
                 mklog("general","FolderEncode: Unable to compress (" . $percentage . "% of original size, avg:" . $averagePercentage . "%) " . $file,false);
-                unlink($outPath);
+                if(!unlink($outPath)){
+                    mklog("warning","FolderEncode: Unable to remove temporary file " . $outPath,false);
+                }
                 return false;
             }
             else{
@@ -364,11 +387,15 @@ class video_encoder{
             }
 
             if($deleteSourceAfter){
-                unlink($file);
+                if(!unlink($file)){
+                    mklog("warning","FolderEncode: Unable to remove source " . $file,false);
+                }
             }
 
             $finalOutPath = str_replace($someNumber . "_TEMP.","",$outPath);
-            rename($outPath,$finalOutPath);
+            if(!rename($outPath,$finalOutPath)){
+                mklog("warning","FolderEncode: Unable to rename temporary file to " . $file,false);
+            }
 
             $doneFileEntry['format']['filename'] = $finalOutPath;
             json::writeFile($jobFolder . "\\" . time::millistamp() . ".json",$doneFileEntry);
@@ -500,6 +527,7 @@ class video_encoder{
     public static function init():void{
         $defaultSettings = array(
             "presetsPath" => "videoencoder/presets",
+            "secondTry"   => true
         );
         foreach($defaultSettings as $dsName => $dsValue){
             settings::set($dsName,$dsValue,false);
