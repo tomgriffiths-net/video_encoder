@@ -1,6 +1,6 @@
 {
     "id_name": "video_encoder",
-    "version": 6,
+    "version": 10,
     "author": "tom",
     "name": "Video encoder",
     "description": "Added presets to allow for better conductor integration.",
