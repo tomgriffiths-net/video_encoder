@@ -123,11 +123,11 @@ class video_encoder{
                 if($options['commandIntoFile'] === true){
                     $commandFile = fopen('video_encoder-commandIntoFile.txt',"a");
                     if(!$commandFile){
-                        mklog("warning","FileEncode: Failed to open file: video_encoder-commandIntoFile.txt",false);
+                        mklog("warning","Failed to open file: video_encoder-commandIntoFile.txt",false);
                         return false;
                     }
                     if(!fwrite($commandFile, $command . "\n")){
-                        mklog("warning","FileEncode: Failed to append to file: video_encoder-commandIntoFile.txt",false);
+                        mklog("warning","Failed to append to file: video_encoder-commandIntoFile.txt",false);
                         return false;
                     }
                     fclose($commandFile);
@@ -169,12 +169,12 @@ class video_encoder{
                 mklog("warning","Failed to encode " . $inPath,false);
                 if(is_file($tempOutName)){
                     if(!unlink($tempOutName)){
-                        mklog("warning","FileEncode: Failed to delete failed encode file " . $tempOutName,false);
+                        mklog("warning","Failed to delete failed encode file " . $tempOutName,false);
                     }
                 }
                 if(!$secondTry && settings::read('secondTry') === true){
                     $secondTry = true;
-                    mklog("general","FileEncode: Trying again to encode " . $inPath,false);
+                    mklog("general","Trying again to encode " . $inPath,false);
                     goto secondtry;
                 }
             }
@@ -223,7 +223,7 @@ class video_encoder{
                     }
 
                     $bitrate = round($videoInfo['format']['bit_rate']/1024);
-                    if($bitrate < 2200){
+                    if($bitrate < 2000){
                         mklog("general","FolderEncode: Skipping " . $file . " as it has a low bitrate (" . $bitrate . " kb)",false);
                         goto end;
                     }
