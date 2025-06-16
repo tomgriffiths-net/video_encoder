@@ -200,7 +200,7 @@ class video_encoder{
     }
     public static function encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive = false, bool|string $jobId = false, array $videoTypes = array("mp4","mov","mkv","avi"), array $encodeOptions = array(), string $outFileExtension = "mp4", bool $deleteSourceAfter = false, bool $useConductor = false):bool{
         $return = false;
-        $saturationModified = false;
+        //$saturationModified = false;
         if(is_dir($sourceFolder)){
             $jobFolder = self::makeJobFolderString($jobId);
             files::ensureFolder($jobFolder);
@@ -237,33 +237,13 @@ class video_encoder{
                         mklog("general","FolderEncode: " . $file . " Is broken or unreadable",false);
                         goto end;
                     }
-
-                    $bitrate = round($videoInfo['format']['bit_rate']/1024);
-                    if($bitrate < 2000){
-                        mklog("general","FolderEncode: Skipping " . $file . " as it has a low bitrate (" . $bitrate . " kb)",false);
-                        goto end;
-                    }
-
-                    $vStream = 0;
-                    foreach($videoInfo["streams"] as $stream){
-                        if($stream["codec_type"] == "video"){$vStream = $stream["index"]; break;}
-                    }
-
-                    $fps = eval("return " . $videoInfo['streams'][$vStream]['avg_frame_rate'] . ";");//Avg frame rate e.g: 30/1
-                    $expectedFps = array(8,10,15,20,23.976,24,25,29.97,30,48,50,59.94,60,75,90,100,120,140,160,180,200,240);
-                    $encodeOptions['framesPerSecond'] = math::getClosest($fps,$expectedFps);
-                    if(round($fps) !== round($encodeOptions['framesPerSecond'])){
-                        mklog("warning","FolderEncode: Fps conversion (" . $fps . " => " . $encodeOptions['framesPerSecond'] . ") for " . $file,false);
-                        sleep(1);
-                        echo "Applying new FPS value\n";
-                    }
                     
-                    if(self::isCinelikeD($file,$videoInfo)){
-                        if(!isset($encodeOptions['saturation'])){
-                            $saturationModified = true;
-                            $encodeOptions['saturation'] = 1.4;
-                        }
-                    }
+                    //if(self::isCinelikeD($file,$videoInfo)){
+                    //    if(!isset($encodeOptions['saturation'])){
+                    //        $saturationModified = true;
+                    //        $encodeOptions['saturation'] = 1.4;
+                    //    }
+                    //}
 
                     $someNumber = time::millistamp();
                     $i = 0;
@@ -319,14 +299,7 @@ class video_encoder{
                             }
                             $averagePercentage = round(math::average($percentages),1);
 
-                            if($outPathSize >= $fileSize){
-                                mklog("general","FolderEncode: Unable to compress (" . $percentage . "% of original size, avg:" . $averagePercentage . "%) " . $file,false);
-                                unlink($outPath);
-                                goto end;
-                            }
-                            else{
-                                mklog("general","FolderEncode: Compressed file (" . round($fileSize/$gigabyte,1) . " GB => " . round($outPathSize/$gigabyte,1) . " GB) (" . $percentage . "% of original size, avg:" . $averagePercentage . "%) " . $file,false);
-                            }
+                            mklog("general","FolderEncode: Encoded file (" . round($fileSize/$gigabyte,1) . " GB => " . round($outPathSize/$gigabyte,1) . " GB) (" . $percentage . "% of original size, avg:" . $averagePercentage . "%) " . $file,false);
 
                             if($deleteSourceAfter){
                                 unlink($file);
@@ -354,12 +327,10 @@ class video_encoder{
                         }
                     }
 
-                    unset($encodeOptions['framesPerSecond']);
-
-                    if($saturationModified){
-                        unset($encodeOptions['saturation']);
-                        $saturationModified = false;
-                    }
+                    //if($saturationModified){
+                    //    unset($encodeOptions['saturation']);
+                    //    $saturationModified = false;
+                    //}
                 }
                 end:
             }
@@ -391,16 +362,7 @@ class video_encoder{
             }
             $averagePercentage = round(math::average($GLOBALS['videoEncoderAveragePercentages']),1);
 
-            if($outPathSize >= $fileSize){
-                mklog("general","FolderEncode: Unable to compress (" . $percentage . "% of original size, avg:" . $averagePercentage . "%) " . $file,false);
-                if(!unlink($outPath)){
-                    mklog("warning","FolderEncode: Unable to remove temporary file " . $outPath,false);
-                }
-                return false;
-            }
-            else{
-                mklog("general","FolderEncode: Compressed file (" . round($fileSize/$gigabyte,1) . " GB => " . round($outPathSize/$gigabyte,1) . " GB) (" . $percentage . "% of original size, avg:" . $averagePercentage . "%) " . $file,false);
-            }
+            mklog("general","FolderEncode: Encoded file (" . round($fileSize/$gigabyte,1) . " GB => " . round($outPathSize/$gigabyte,1) . " GB) (" . $percentage . "% of original size, avg:" . $averagePercentage . "%) " . $file,false);
 
             if($deleteSourceAfter){
                 if(!unlink($file)){
@@ -550,8 +512,7 @@ class video_encoder{
         if($videoInfo === false){
             $videoInfo = self::getVideoInfo($path);
         }
-        $fileExtenstion = files::getFileExtension($path);
-        if($fileExtenstion === "MOV"){
+        if(files::getFileExtension($path) === "MOV"){
             if(isset($videoInfo['format']['tags']['com.panasonic.Semi-Pro.metadata.xml'])){
                 $xmldata = data_types::xmlStringToArray($videoInfo['format']['tags']['com.panasonic.Semi-Pro.metadata.xml']);
                 if(isset($xmldata['UserArea']['AcquisitionMetadata']['CameraUnitMetadata']['Gamma']['CaptureGamma'])){
