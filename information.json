@@ -1,13 +1,14 @@
 {
     "id_name": "video_encoder",
-    "version": 10,
+    "name": "Video Encoder (Dev)",
+    "version": 11,
     "author": "tom",
-    "name": "Video encoder",
-    "description": "Added presets to allow for better conductor integration.",
+    "description": "",
     "dependencies": {
         "conductor_client": 4,
-        "e_ffmpeg": 2,
+        "e_ffmpeg": 4,
         "math": 2,
-        "settings": 2
+        "settings": 2,
+        "cli_pixels": 3
     }
 }
