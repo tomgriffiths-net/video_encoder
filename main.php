@@ -1,5 +1,18 @@
 <?php
 class video_encoder{
+    public static function init():void{
+        $defaultSettings = array(
+            "presetsPath" => "videoencoder/presets",
+            "secondTry"   => true
+        );
+        foreach($defaultSettings as $dsName => $dsValue){
+            settings::set($dsName,$dsValue,false);
+        }
+
+        if(!self::doesPresetExist("default")){
+            self::createPreset("default",array(),false);
+        }
+    }
     public static function encode_video(string $inPath, string $outPath, array $options = array()):bool{
 
         if(isset($options['preset'])){
@@ -66,8 +79,8 @@ class video_encoder{
     
                 $command .= '-vf "';
     
-                if(is_int($options['framesPerSecond'])){
-                    $fps = round(floatval($options['framesPerSecond']),3);
+                if(is_int($options['framesPerSecond']) || is_float($options['framesPerSecond'])){
+                    $fps = round($options['framesPerSecond'],3);
                     if($fps < 1 || $fps > 1000){
                         $fps = 29.97;
                     }
@@ -119,24 +132,27 @@ class video_encoder{
             $tempOutName = $outPathFolder . '\\' . $outPathFileName . "_tmp" . $millistamp . $outPathFileExtension;
             $command .= '"' . $tempOutName . '" -y';
 
-            if(isset($options['commandIntoFile'])){
-                if($options['commandIntoFile'] === true){
-                    $commandFile = fopen('video_encoder-commandIntoFile.txt',"a");
-                    if(!$commandFile){
-                        mklog("warning","Failed to open file: video_encoder-commandIntoFile.txt",false);
-                        return false;
-                    }
-                    if(!fwrite($commandFile, $command . "\n")){
-                        mklog("warning","Failed to append to file: video_encoder-commandIntoFile.txt",false);
-                        return false;
-                    }
-                    fclose($commandFile);
-                    return true;
+            if($options['commandIntoFile'] === true){
+                $commandFile = fopen('video_encoder-commandIntoFile.txt',"a");
+                if(!$commandFile){
+                    mklog("warning","Failed to open file: video_encoder-commandIntoFile.txt",false);
+                    return false;
                 }
+                if(!fwrite($commandFile, $command . "\n")){
+                    mklog("warning","Failed to append to file: video_encoder-commandIntoFile.txt",false);
+                    return false;
+                }
+                fclose($commandFile);
+                return true;
             }
 
             //mklog("general","FileEncode: Encoding " . $inPath . " (" . filesize($inPath) / (1024**3) . " GB)",false);
-            exec($command);
+            if($options['livePreview'] === true){
+                self::preview($command, $options['livePreviewWidth'], $options['livePreviewHeight']);
+            }
+            else{
+                exec($command);
+            }
 
             sleep(2);
 
@@ -479,13 +495,7 @@ class video_encoder{
         }
         return false;
     }
-    private static function makeJobFolderString(string|bool $jobId=false):string{
-        if(!is_string($jobId)){
-            $jobId = (string) time::stamp();
-        }
-        return getcwd() . '\\temp\\video_encoder\\folder_jobs\\' . $jobId;
-    }
-    public static function getVideoInfo(string $path, string|bool $jobFolder=false):array{
+    public static function getVideoInfo(string $path, string|bool $jobFolder=false):array|bool{
         if(!is_string($jobFolder)){
             $jobFolder = self::makeJobFolderString();
         }
@@ -500,12 +510,41 @@ class video_encoder{
         $result = json::readFile($jsonPath);
 
         if(!is_array($result)){
-            $result = array();
+            return false;
         }
 
         $result['infoFile'] = $jsonPath;
 
         return $result;
+    }
+    public static function doesPresetExist(string $name):bool{
+        $path = self::presetPath($name);
+        if(!is_string($path)){
+            return false;
+        }
+        return is_file($path);
+    }
+    public static function loadPreset(string $name):array|false{
+        $path = self::presetPath($name);
+        if(!is_string($path)){
+            return false;
+        }
+        return json::readFile($path,false);
+    }
+    public static function createPreset(string $name, array $options=[], $overwrite=true):bool{
+        $options = self::parseOptions($options);
+        $path = self::presetPath($name);
+        if(!is_string($path)){
+            return false;
+        }
+        return json::writeFile($path, $options, $overwrite);
+    }
+
+    private static function makeJobFolderString(string|bool $jobId=false):string{
+        if(!is_string($jobId)){
+            $jobId = (string) time::stamp();
+        }
+        return getcwd() . '\\temp\\video_encoder\\folder_jobs\\' . $jobId;
     }
     private static function isCinelikeD(string $path, array|bool $videoInfo=false):bool{
         if($videoInfo === false){
@@ -523,41 +562,6 @@ class video_encoder{
             }
         }
         return false;
-    }
-    public static function init():void{
-        $defaultSettings = array(
-            "presetsPath" => "videoencoder/presets",
-            "secondTry"   => true
-        );
-        foreach($defaultSettings as $dsName => $dsValue){
-            settings::set($dsName,$dsValue,false);
-        }
-
-        if(!self::doesPresetExist("default")){
-            self::createPreset("default",array(),false);
-        }
-    }
-    public static function doesPresetExist(string $name):bool{
-        $path = self::presetPath($name);
-        if(!is_string($path)){
-            return false;
-        }
-        return is_file($path);
-    }
-    public static function loadPreset(string $name):array|false{
-        $path = self::presetPath($name);
-        if(!is_string($path)){
-            return false;
-        }
-        return json::readFile($path,false);
-    }
-    public static function createPreset(string $name, array $options = array(), $overwrite=true):bool{
-        $options = self::parseOptions($options);
-        $path = self::presetPath($name);
-        if(!is_string($path)){
-            return false;
-        }
-        return json::writeFile($path, $options, $overwrite);
     }
     private static function presetPath(string $name):string|false{
         if(preg_match('/^[a-zA-Z0-9\s_-]+$/', $name) !== 1){
@@ -584,7 +588,11 @@ class video_encoder{
             "qualityLoss" => 23,
             "format" => false,
             "realTime" => false,
-            "customArgs" => false
+            "customArgs" => false,
+            "commandIntoFile" => false,
+            "livePreview" => false,
+            "livePreviewWidth" => 69,
+            "livePreviewHeight" => 39
         );
         $outOptions = $defaultOptions;
         foreach($defaultOptions as $defaultOption => $defaultOptionValue){
@@ -592,11 +600,48 @@ class video_encoder{
                 $outOptions[$defaultOption] = $options[$defaultOption];
             }
         }
-
-        if(isset($options['commandIntoFile'])){
-            $outOptions['commandIntoFile'] = $options['commandIntoFile'];
-        }
         
         return $outOptions;
+    }
+    private static function preview(string $command, int $width, int $height):bool{
+        $bytesPerFrame = $width * $height * 3;
+        if($bytesPerFrame > 8192){//Max pipe buffer
+            mklog(2,'Specified preview frame size is too large');
+            return false;
+        }
+
+        $ffmpegCmd = $command . ' -filter:v "scale=' . $width . ':' . $height . '" -f rawvideo -pix_fmt rgb24 pipe:0';
+        
+        // Open FFmpeg process with pipes
+        $process = proc_open($ffmpegCmd, [['pipe', 'w']], $pipes, null, null, ['create_new_console'=>true]);
+        
+        if(!is_resource($process)){
+            mklog(2,"Failed to open ffmpeg process (preview mode)");
+            return false;
+        }
+        
+        cli_pixels::set_screen_size($width,$height);
+        
+        while(true){
+            // Read from FFmpeg stdout
+            $data = fread($pipes[0], $bytesPerFrame);
+            if($data !== false){
+                if(!cli_pixels::showRgbFrame($data, $width, $height)){
+                    echo "No more data\n";
+                    break;
+                }
+            }
+        }
+
+        // Close
+        fclose($pipes[0]);
+        $exitCode = proc_close($process);
+        
+        if($exitCode !== 0){
+            mklog(2,"Ffmpeg did not exit properly (preview mode)");
+            return false;
+        }
+
+        return true;
     }
 }
