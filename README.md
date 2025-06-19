@@ -14,12 +14,13 @@ video_encoder is a PHP-CLI package that provides functionality to encode videos 
 - **cpuThreads**: Integer, no default, specifies the limit of threads that ffmpeg can use.
 - **qualityLoss**: Integer, default of 23, specifies the amount of compression to apply to the output video, is more sensetive when using cpu encoding.
 - **format**: String, no default, specifies the format of the output video.
-- **realTime**: Boolean, default of false, specifies weather to encode the video in real time or not.
-- **customArgs**: String, no default, specifies custom ffmpeg arguments, overrides everything exept the input, output, realTime, threads, and livePreview options.
-- **commandIntoFile**: Boolean, default of false, specifies weather to output the ffmpeg command into a file rather than executing the command.
+- **realTime**: Boolean, default of false, specifies weather to encode the video in real time or not, cannot be used with 2pass.
+- **customArgs**: String, no default, specifies custom ffmpeg arguments, overrides everything exept the input, output, realTime, threads, and livePreview options, can be used with 2pass but all video options must come before all audio and other options.
+- **commandIntoFile**: Boolean, default of false, specifies weather to output the ffmpeg command into a file rather than executing the command, cannot be used with 2pass.
 - **livePreview**: Boolean, default is false, specifies weather to provide a live preview of what ffmpeg is currently encoding, causes ffmpeg to be opened in a new command window and may cause small performance drop.
 - **livePreviewWidth**: Integer, default of 69, specifies the width of the live preview, uses cli_pixels so the total number of pixels in the preview is limited to 2730.
 - **livePreviewHeight**: Integer, default of 39, specifies the height of the live preview.
+- **2pass**: Boolean, default of false, specifies weather ffmpeg should first scan the file before encoding.
 
 # Functions
 - **encode_video(string $inPath, string $outPath, array $options=[]):bool**: Encodes a video with the specified options. Returns true on success or false on failure.

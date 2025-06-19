@@ -37,15 +37,44 @@ class video_encoder{
             files::ensureFolder($outPathFolder);
 
             $command = '"' . e_ffmpeg::path('ffmpeg') . '" ';
+            $extra = '';
 
             if($options['realTime']){
-                $command .= '-re ';
+                if(!$options['2pass']){
+                    $command .= '-re ';
+                }
+                else{
+                    mklog(2,'Unable to use realTime due to 2pass being enabled');
+                }
             }
 
             $command .= '-i "' . $inPath . '" ';
 
             if(is_string($options['customArgs']) && !empty($options['customArgs'])){
-                $command .= $options['customArgs'] . " ";
+                $cutoff = false;
+                if($options['2pass']){
+                    foreach([' -c:a ', ' -b:a ', ' -f '] as $audioThing){
+                        $newcutoff = strpos($options['customArgs'], $audioThing);
+                        if(is_int($newcutoff)){
+                            if(is_int($cutoff)){
+                                if($newcutoff < $cutoff){
+                                    $cutoff = $newcutoff;
+                                }
+                            }
+                            else{
+                                $cutoff = $newcutoff;
+                            }
+                        }
+                    }
+                }
+
+                if(is_int($cutoff)){
+                    $command .= substr($options['customArgs'], 0, $cutoff) . ' ';
+                    $extra .= substr($options['customArgs'], $cutoff) . ' ';
+                }
+                else{
+                    $command .= $options['customArgs'] . " ";
+                }
             }
             else{
                 if($options['NVENC'] === true){
@@ -109,14 +138,29 @@ class video_encoder{
                 }
     
                 if(is_int($options['outputAudioBitrate'])){
-                    $command .= '-b:a ' . $options['outputAudioBitrate'] . 'k ';
+                    if($options['2pass']){
+                        $extra .= '-b:a ' . $options['outputAudioBitrate'] . 'k ';
+                    }
+                    else{
+                        $command .= '-b:a ' . $options['outputAudioBitrate'] . 'k ';
+                    }
                 }
                 if(is_int($options['outputAudioSampleRate'])){
-                    $command .= '-ar ' . $options['outputAudioSampleRate'] . ' ';
+                    if($options['2pass']){
+                        $extra .= '-ar ' . $options['outputAudioSampleRate'] . ' ';
+                    }
+                    else{
+                        $command .= '-ar ' . $options['outputAudioSampleRate'] . ' ';
+                    }
                 }
     
                 if(is_string($options['format'])){
-                    $command .= '-f "' . $options['format'] . '" ';
+                    if($options['2pass']){
+                        $extra .= '-f "' . $options['format'] . '" ';
+                    }
+                    else{
+                        $command .= '-f "' . $options['format'] . '" ';
+                    }
                 }
             }
 
@@ -128,11 +172,15 @@ class video_encoder{
                 $command .= '-threads ' . $threads . ' ';
             }
 
-            $millistamp = time::millistamp();
-            $tempOutName = $outPathFolder . '\\' . $outPathFileName . "_tmp" . $millistamp . $outPathFileExtension;
-            $command .= '"' . $tempOutName . '" -y';
+            $tempOutName = $outPathFolder . '\\' . $outPathFileName . "_tmp" . time::millistamp() . $outPathFileExtension;
+            if($options['2pass']){
+                $extra .= '"' . $tempOutName . '" -y';
+            }
+            else{
+                $command .= '"' . $tempOutName . '" -y';
+            }
 
-            if($options['commandIntoFile'] === true){
+            if($options['commandIntoFile'] && !$options['2pass']){
                 $commandFile = fopen('video_encoder-commandIntoFile.txt',"a");
                 if(!$commandFile){
                     mklog("warning","Failed to open file: video_encoder-commandIntoFile.txt",false);
@@ -147,14 +195,37 @@ class video_encoder{
             }
 
             //mklog("general","FileEncode: Encoding " . $inPath . " (" . filesize($inPath) / (1024**3) . " GB)",false);
-            if($options['livePreview'] === true){
+            if($options['2pass']){
+                $passLogDir = getcwd() . '\\temp\\video_encoder\\2passlogs';
+                files::ensureFolder($passLogDir);
+                $passLogFile = $passLogDir . '\\' . time::millistamp();
+
+                echo "Running first pass scan...\n";
+                $commandFirstPass = $command . '-pass 1 -passlogfile "' . $passLogFile . '" -an -loglevel quiet -f null NUL';
+                exec($commandFirstPass);
+
+                if(!is_file($passLogFile . '-0.log') || !filesize($passLogFile . '-0.log')){
+                    if(!$secondTry && settings::read('secondTry') === true){
+                        $secondTry = true;
+                        mklog("general","Trying again to scan " . $inPath,false);
+                        goto secondtry;
+                    }
+                }
+
+                echo "Running second pass\n";
+                sleep(2);
+
+                $command .= '-pass 2 -passlogfile "' . $passLogFile . '" ' . $extra;
+            }
+
+            if($options['livePreview']){
                 self::preview($command, $options['livePreviewWidth'], $options['livePreviewHeight']);
             }
             else{
                 exec($command);
             }
 
-            sleep(2);
+            sleep(3);
 
             $jsonPath = $tempOutName . '.json';
             exec('"' . e_ffmpeg::path('ffprobe') . '" -v quiet -print_format json -show_format -show_streams "' . $tempOutName . '">"' . $jsonPath . '"');
@@ -553,7 +624,8 @@ class video_encoder{
             "commandIntoFile" => false,
             "livePreview" => false,
             "livePreviewWidth" => 69,
-            "livePreviewHeight" => 39
+            "livePreviewHeight" => 39,
+            "2pass" => false
         );
         $outOptions = $defaultOptions;
         foreach($defaultOptions as $defaultOption => $defaultOptionValue){
