@@ -20,7 +20,7 @@ video_encoder is a PHP-CLI package that provides functionality to encode videos 
 - **livePreview**: Boolean, default is false, specifies weather to provide a live preview of what ffmpeg is currently encoding, causes ffmpeg to be opened in a new command window and may cause small performance drop.
 - **livePreviewWidth**: Integer, default of 69, specifies the width of the live preview, uses cli_pixels so the total number of pixels in the preview is limited to 2730.
 - **livePreviewHeight**: Integer, default of 39, specifies the height of the live preview.
-- **2pass**: Boolean, default of false, specifies weather ffmpeg should first scan the file before encoding.
+- **2pass**: Boolean, default of false, specifies weather ffmpeg should first scan the file before encoding, will not be enabled if the video streams are only being copied (e.g. "-c:v copy" is present).
 
 # Functions
 - **encode_video(string $inPath, string $outPath, array $options=[]):bool**: Encodes a video with the specified options. Returns true on success or false on failure.

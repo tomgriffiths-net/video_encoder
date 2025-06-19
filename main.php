@@ -51,6 +51,12 @@ class video_encoder{
             $command .= '-i "' . $inPath . '" ';
 
             if(is_string($options['customArgs']) && !empty($options['customArgs'])){
+
+                $argsNoSpaces = str_replace(" ", "", $options['customArgs']);
+                if(strpos($argsNoSpaces, '-c:vcopy') !== false || strpos($argsNoSpaces, '-codecvideocopy') !== false || strpos($argsNoSpaces, '-vcodeccopy') !== false){
+                    $options['2pass'] = false; //Skip 2pass if video streams are copied
+                }
+
                 $cutoff = false;
                 if($options['2pass']){
                     foreach([' -c:a ', ' -b:a ', ' -f '] as $audioThing){
