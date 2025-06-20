@@ -27,7 +27,7 @@ class video_encoder{
         $options = self::parseOptions($options);
 
         $secondTry = false;
-        secondtry:
+        $scanSecondTry = false;
 
         if(is_file($inPath)){
             $outPathFolder = files::getfileDir($outPath);
@@ -54,6 +54,8 @@ class video_encoder{
 
                 $argsNoSpaces = str_replace(" ", "", $options['customArgs']);
                 if(strpos($argsNoSpaces, '-c:vcopy') !== false || strpos($argsNoSpaces, '-codecvideocopy') !== false || strpos($argsNoSpaces, '-vcodeccopy') !== false){
+                    echo "Skipping 2pass\n";
+                    sleep(2);
                     $options['2pass'] = false; //Skip 2pass if video streams are copied
                 }
 
@@ -206,23 +208,31 @@ class video_encoder{
                 files::ensureFolder($passLogDir);
                 $passLogFile = $passLogDir . '\\' . time::millistamp();
 
-                echo "Running first pass scan...\n";
-                $commandFirstPass = $command . '-pass 1 -passlogfile "' . $passLogFile . '" -an -loglevel quiet -f null NUL';
-                exec($commandFirstPass);
+                scansecondtry:
 
-                if(!is_file($passLogFile . '-0.log') || !filesize($passLogFile . '-0.log')){
-                    if(!$secondTry && settings::read('secondTry') === true){
-                        $secondTry = true;
-                        mklog("general","Trying again to scan " . $inPath,false);
-                        goto secondtry;
+                echo "Running first pass scan...\n";
+                $pass1result = shell_exec($command . '-pass 1 -passlogfile "' . $passLogFile . '" -an -loglevel error -f null NUL 2>&1');
+                sleep(2);
+
+                if(!is_file($passLogFile . '-0.log') || !filesize($passLogFile . '-0.log') || $pass1result !== null){
+                    mklog(2,'Failed to scan file ' . $inPath);
+                    if(!$scanSecondTry && settings::read('secondTry') === true){
+                        $scanSecondTry = true;
+                        mklog(1,"Trying again to scan " . $inPath . ' in 20 seconds...');
+                        sleep(20);
+                        goto scansecondtry;
                     }
+                    return false;
                 }
 
                 echo "Running second pass\n";
-                sleep(2);
 
                 $command .= '-pass 2 -passlogfile "' . $passLogFile . '" ' . $extra;
+
+                sleep(2);
             }
+
+            secondtry:
 
             if($options['livePreview']){
                 self::preview($command, $options['livePreviewWidth'], $options['livePreviewHeight']);
@@ -259,10 +269,10 @@ class video_encoder{
             }
             else{
                 sleep(2);
-                mklog("warning","Failed to encode " . $inPath,false);
+                mklog(2,"Failed to encode " . $inPath,false);
                 if(is_file($tempOutName)){
                     if(!unlink($tempOutName)){
-                        mklog("warning","Failed to delete failed encode file " . $tempOutName,false);
+                        mklog(2,"Failed to delete failed encode file " . $tempOutName,false);
                     }
                 }
                 if(!$secondTry && settings::read('secondTry') === true){
