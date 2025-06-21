@@ -23,11 +23,10 @@ class video_encoder{
                 }
             }
         }
-        
         $options = self::parseOptions($options);
 
         $secondTry = false;
-        $scanSecondTry = false;
+        secondtry:
 
         if(is_file($inPath)){
             $outPathFolder = files::getfileDir($outPath);
@@ -208,20 +207,20 @@ class video_encoder{
                 files::ensureFolder($passLogDir);
                 $passLogFile = $passLogDir . '\\' . time::millistamp();
 
-                scansecondtry:
-
                 echo "Running first pass scan...\n";
                 $pass1result = shell_exec($command . '-pass 1 -passlogfile "' . $passLogFile . '" -an -loglevel error -f null NUL 2>&1');
                 sleep(2);
 
                 if(!is_file($passLogFile . '-0.log') || !filesize($passLogFile . '-0.log') || $pass1result !== null){
                     mklog(2,'Failed to scan file ' . $inPath);
-                    if(!$scanSecondTry && settings::read('secondTry') === true){
-                        $scanSecondTry = true;
-                        mklog(1,"Trying again to scan " . $inPath . ' in 20 seconds...');
+
+                    if(!$secondTry && settings::read('secondTry') === true){
+                        $secondTry = true;
+                        mklog("general","Trying again to scan " . $inPath . " in 20 seconds...",false);
                         sleep(20);
-                        goto scansecondtry;
+                        goto secondtry;
                     }
+
                     return false;
                 }
 
@@ -231,8 +230,6 @@ class video_encoder{
 
                 sleep(2);
             }
-
-            secondtry:
 
             if($options['livePreview']){
                 self::preview($command, $options['livePreviewWidth'], $options['livePreviewHeight']);
