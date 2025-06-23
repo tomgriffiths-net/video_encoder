@@ -32,7 +32,6 @@ class video_encoder{
             $outPathFolder = files::getfileDir($outPath);
             $outPathFileExtension = "." . files::getFileExtension($outPath);
             $outPathFileName = str_replace($outPathFileExtension,"",files::getFileName($outPath));
-
             files::ensureFolder($outPathFolder);
 
             $command = '"' . e_ffmpeg::path('ffmpeg') . '" ';
@@ -52,7 +51,7 @@ class video_encoder{
             if(is_string($options['customArgs']) && !empty($options['customArgs'])){
 
                 $argsNoSpaces = str_replace(" ", "", $options['customArgs']);
-                if(strpos($argsNoSpaces, '-c:vcopy') !== false || strpos($argsNoSpaces, '-codecvideocopy') !== false || strpos($argsNoSpaces, '-vcodeccopy') !== false){
+                if(strpos($argsNoSpaces, '-c:vcopy') !== false || strpos($argsNoSpaces, '-codecvideocopy') !== false || strpos($argsNoSpaces, '-vcodeccopy') !== false || strpos($argsNoSpaces, '-ccopy') !== false){
                     echo "Skipping 2pass\n";
                     sleep(2);
                     $options['2pass'] = false; //Skip 2pass if video streams are copied
@@ -201,7 +200,6 @@ class video_encoder{
                 return true;
             }
 
-            //mklog("general","FileEncode: Encoding " . $inPath . " (" . filesize($inPath) / (1024**3) . " GB)",false);
             if($options['2pass']){
                 $passLogDir = getcwd() . '\\temp\\video_encoder\\2passlogs';
                 files::ensureFolder($passLogDir);
