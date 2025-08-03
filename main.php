@@ -36,7 +36,7 @@ class video_encoder{
         $outPathFileExtension = "." . files::getFileExtension($outPath);
         $outPathFileName = str_replace($outPathFileExtension,"",files::getFileName($outPath));
 
-        if(is_string($options['customArgs'])){
+        if(is_string($options['customArgs']) && !empty($options['customArgs']) && $options['2pass']){
             if(!self::customArgsAllow2pass($options['customArgs'])){
                 echo "Skipping 2pass\n";
                 sleep(2);
@@ -315,7 +315,7 @@ class video_encoder{
                         }
                     }
 
-                    $someNumber = time::millistamp();
+                    $someNumber = intval(time::millistamp());
                     $fileExtenstion = files::getFileExtension($file);
                     $tempPath = str_replace($fileExtenstion,$someNumber . "_TEMP." . $outFileExtension,$file);
                     $outPath = str_replace($sourceFolder,$destinationFolder,$tempPath);
@@ -363,14 +363,34 @@ class video_encoder{
         return $return;
     }
     public static function afterFolderEncode($encodeSuccess,$file,$outPath,$deleteSourceAfter,$someNumber,$jobFolder):bool{
-
         if(!is_string($file)){
             mklog(2,"FolderEncode: Unable to finalize encode (typeError) for an unknown file");
             return false;
         }
 
-        if(!is_bool($encodeSuccess) || !is_string($outPath) || !is_bool($deleteSourceAfter) || (!is_string($someNumber) && !is_int($someNumber)) || !is_string($jobFolder)){
-            mklog(2,"FolderEncode: Unable to finalize encode (typeError) for " . $file);
+        if(!is_bool($encodeSuccess)){
+            mklog(2,"FolderEncode: Unable to finalize encode (typeError) (encodeSuccess) for " . $file);
+            sleep(2);
+            return false;
+        }
+        if(!is_string($outPath)){
+            mklog(2,"FolderEncode: Unable to finalize encode (typeError) (outPath) for " . $file);
+            sleep(2);
+            return false;
+        }
+        if(!is_bool($deleteSourceAfter)){
+            mklog(2,"FolderEncode: Unable to finalize encode (typeError) (deleteSourceAfter) for " . $file);
+            sleep(2);
+            return false;
+        }
+        if(!is_int($someNumber)){
+            mklog(2,"FolderEncode: Unable to finalize encode (typeError) (someNumber) for " . $file);
+            sleep(2);
+            return false;
+        }
+        if(!is_string($jobFolder)){
+            mklog(2,"FolderEncode: Unable to finalize encode (typeError) (jobFolder) for " . $file);
+            sleep(2);
             return false;
         }
 
