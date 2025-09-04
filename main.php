@@ -720,6 +720,138 @@ class video_encoder{
 
         return $return;
     }
+    public static function getVideoBitrate(string $path):int|false{
+        $data = self::getVideoInfo($path);
+        if(!is_array($data) || !isset($data['format']['bit_rate'])){
+            return false;
+        }
+        return intval($data['format']['bit_rate']);
+    }
+    public static function useCompressionToTargetBitrate(string $inPath, string $outPath, string $customArgs, int $bitrate, string $mode="closest", int $minCompression=20, int $maxCompression=40):bool{
+        if(!strpos($customArgs, "<cmp>")){
+            mklog(2,'Failed to find "<cmp>" in customArgs string');
+            return false;
+        }
+
+        $compressionResults = [];
+        $finalCompression = null;
+
+        $low = $minCompression;
+        $high = $maxCompression;
+
+        while($low <= $high){
+            $compression = intdiv($low + $high, 2);
+            if(isset($compressionResults[$compression])){
+                // Already tested this CRF, break to avoid infinite loop
+                break;
+            }
+
+            $newOutPath = $outPath . '_compression_' . $compression . '.' . files::getFileExtension($outPath);
+            $newArgs = str_replace("<cmp>", $compression, $customArgs);
+
+            if(!self::encode_video($inPath, $newOutPath, ['customArgs' => $newArgs])){
+                mklog(2, 'Failed to encode ' . $inPath . ' with arguments ' . $newArgs);
+                return false;
+            }
+
+            $compressionResults[$compression] = self::getVideoBitrate($newOutPath);
+
+            // If exact match, magic
+            if($compressionResults[$compression] == $bitrate){
+                $finalCompression = $compression;
+                break;
+            }
+
+            // Adjust bounds based on bitrate
+            if($compressionResults[$compression] > $bitrate){
+                // Too high bitrate means need more compression
+                $low = $compression + 1;
+            }
+            else{
+                // Too low bitrate means need less compression
+                $high = $compression - 1;
+            }
+        }
+
+        if(!is_int($finalCompression)){
+            if($mode === 'min'){
+                // Highest CRF that is >= target bitrate
+                $finalCompression = math::getLowestKey($compressionResults, $bitrate);
+                // fallback to highest CRF tested if nothing meets condition
+                if($finalCompression === null){
+                    $finalCompression = max(array_keys($compressionResults));
+                }
+            } 
+            elseif($mode === 'max'){
+                // Lowest CRF that is <= target bitrate
+                $finalCompression = math::getHighestKey($compressionResults, $bitrate);
+                // fallback to lowest CRF tested if nothing meets condition
+                if($finalCompression === null){
+                    $finalCompression = min(array_keys($compressionResults));
+                }
+            } 
+            else{ // target mode
+                $finalCompression = math::getClosestKey($compressionResults, $bitrate);
+            }
+        }
+
+        if(!is_int($finalCompression)){
+            mklog(2, 'Failed to find optimal compression value');
+            return false;
+        }
+
+        mklog(1, 'Found compression value of ' . $finalCompression . ' to be close to ' . $bitrate . ' at ' . $compressionResults[$finalCompression]);
+
+        // Move chosen result to final output
+        if(!rename($outPath . '_compression_' . $finalCompression . '.' . files::getFileExtension($outPath), $outPath)){
+            mklog(2, 'Failed to rename temporary file to output name');
+            return false;
+        }
+
+        // Clean up all temp files
+        foreach($compressionResults as $compressionResult => $compressionBitrate){
+            $tempFile = $outPath . '_compression_' . $compressionResult . '.' . files::getFileExtension($outPath);
+            if(is_file($tempFile)){
+                unlink($tempFile);
+            }
+        }
+
+        return true;
+    }
+    public static function useCompressionToTargetBitrateOnFolder(string $sourceFolder, string $destinationFolder, string $customArgs, int $bitrate, string $mode="closest", int $minCompression=20, int $maxCompression=40, bool $recursive=false, array $videoTypes=["mp4","mov","mkv","avi"]):bool{
+        if(!is_dir($sourceFolder)){
+            mklog(2,'Source folder does not exist');
+            return false;
+        }
+        $return = true;
+        $somethingHappened = false;
+
+        $files = ($recursive ? files::globRecursive($sourceFolder . "\\", "*.*") : glob($sourceFolder . "\\*"));
+        foreach($files as $file){
+            if(is_file("temp/video_encoder/stop")){
+                mklog(1,"FolderEncode: Stop file found, stopping");
+                break;
+            }
+
+            if(!self::isVideo($file,$videoTypes)){
+                continue;
+            }
+
+            $outPath = str_replace($sourceFolder, $destinationFolder, $file);
+
+            echo "Compressing " . $file . "\n";
+            $somethingHappened = true;
+            if(!self::useCompressionToTargetBitrate($file, $outPath, $customArgs, $bitrate, $mode, $minCompression, $maxCompression)){
+                $return = false;
+            }
+        }
+
+        if(!$somethingHappened){
+            $return = false;
+        }
+
+        return $return;
+    }
 
     private static function makeJobFolderString(string|bool $jobId=false):string{
         if(!is_string($jobId)){
