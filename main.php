@@ -1,13 +1,14 @@
 <?php
 class video_encoder{
     public static function init():void{
-        $defaultSettings = array(
+        $defaultSettings = [
             "presetsPath" => "videoencoder/presets",
             "secondTry"   => true,
-            "allowCinelikeDSaturationModification" => false
-        );
+            "allowCinelikeDSaturationModification" => false,
+            "copyFilesToLocal" => false
+        ];
         foreach($defaultSettings as $dsName => $dsValue){
-            settings::set($dsName,$dsValue,false);
+            settings::set($dsName, $dsValue, false);
         }
 
         if(!self::doesPresetExist("default")){
@@ -271,6 +272,57 @@ class video_encoder{
 
         return true;
     }
+    public static function encode_video_copyFiles(string $inPath, string $outPath, array $options=[]):bool{
+        if(!is_file($inPath)){
+            mklog(2,'Input file does not exist');
+            return false;
+        }
+
+        if(is_file($outPath)){
+            mklog(2,'Output file already exists');
+            return false;
+        }
+
+        $base = getcwd() . "\\temp\\video_encoder\\" . time();
+
+        $inPath2 = $base . "-in";
+        $inPathExt = files::getFileExtension($inPath);
+        if(!empty($inPathExt)){
+            $inPath2 .= "." . $inPathExt;
+        }
+
+        $outPath2 = $base . "-out";
+        $outPathExt = files::getFileExtension($outPath);
+        if(!empty($outPathExt)){
+            $outPath2 .= "." . $outPathExt;
+        }
+
+        //Copy file
+        if(!files::copyFile($inPath, $inPath2)){
+            if(is_file($inPath2)){
+                unlink($inPath2);
+            }
+            return false;
+        }
+
+        if(!self::encode_video($inPath2, $outPath2, $options)){
+            unlink($inPath2);
+            return false;
+        }
+
+        if(!files::copyFile($outPath2, $outPath)){
+            if(is_file($outPath)){
+                unlink($outPath);
+            }
+            unlink($inPath2);
+            return false;
+        }
+
+        unlink($inPath2);
+        unlink($outPath2);
+        
+        return true;
+    }
     public static function encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive=false, bool|string $jobId=false, array $videoTypes=["mp4","mov","mkv","avi"], array $encodeOptions=[], string $outFileExtension="mp4", bool $deleteSourceAfter=false, bool $useConductor=false):bool{
         $return = false;
         $saturationModified = false;
@@ -310,7 +362,7 @@ class video_encoder{
                         if(self::isCinelikeD($file,$videoInfo)){
                             if(!isset($encodeOptions['saturation'])){
                                 $saturationModified = true;
-                                $encodeOptions['saturation'] = 1.4;
+                                $encodeOptions['saturation'] = 1.3;
                             }
                         }
                     }
@@ -321,7 +373,7 @@ class video_encoder{
                     $outPath = str_replace($sourceFolder,$destinationFolder,$tempPath);
 
                     if($useConductor){
-                        $functionString = "video_encoder::encode_video(";
+                        $functionString = "video_encoder::encode_video" . (settings::read('copyFilesToLocal') ? "_copyFiles" : "") . "(";
                         $functionString .= '"' . files::validatePath($file,false) . '",';
                         $functionString .= '"' . files::validatePath($outPath,false) . '",';
                         $functionString .= data_types::array_to_eval_string($encodeOptions) . ");";
@@ -346,7 +398,12 @@ class video_encoder{
                         }
                     }
                     else{
-                        $encodeSuccess = self::encode_video($file, $outPath, $encodeOptions);
+                        if(settings::read('copyFilesToLocal')){
+                            $encodeSuccess = self::encode_video_copyFiles($file, $outPath, $encodeOptions);
+                        }
+                        else{
+                            $encodeSuccess = self::encode_video($file, $outPath, $encodeOptions);
+                        }
 
                         if(self::afterFolderEncode($encodeSuccess, $file, $outPath, $deleteSourceAfter, $someNumber, $jobFolder)){
                             $return = true;
