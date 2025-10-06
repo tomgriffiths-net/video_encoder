@@ -15,7 +15,7 @@ class video_encoder{
             self::createPreset("default",[],false);
         }
     }
-    public static function encode_video(string $inPath, string $outPath, array $options=[]):bool{
+    public static function encode_video(string $inPath, string $outPath, array $options=[], bool $allowFileCopy=true):bool{
         if(!is_file($inPath)){
             mklog(2,'Input file does not exist');
             return false;
@@ -25,6 +25,51 @@ class video_encoder{
             mklog(2,'Output file already exists');
             return false;
         }
+
+        if($allowFileCopy && settings::read('copyFilesToLocal')){
+
+            $base = getcwd() . "\\temp\\video_encoder\\" . time();
+
+            $inPath2 = $base . "-in";
+            $inPathExt = files::getFileExtension($inPath);
+            if(!empty($inPathExt)){
+                $inPath2 .= "." . $inPathExt;
+            }
+
+            $outPath2 = $base . "-out";
+            $outPathExt = files::getFileExtension($outPath);
+            if(!empty($outPathExt)){
+                $outPath2 .= "." . $outPathExt;
+            }
+
+            //Copy file
+            if(!files::copyFile($inPath, $inPath2, true)){
+                if(is_file($inPath2)){
+                    unlink($inPath2);
+                }
+                return false;
+            }
+
+            if(!self::encode_video($inPath2, $outPath2, $options, false)){
+                unlink($inPath2);
+                return false;
+            }
+
+            if(!files::copyFile($outPath2, $outPath, true)){
+                if(is_file($outPath)){
+                    unlink($outPath);
+                }
+                unlink($inPath2);
+                return false;
+            }
+
+            unlink($inPath2);
+            unlink($outPath2);
+            
+            return true;
+        }
+
+        // process video
 
         $options = self::loadOptions($options);
 
@@ -53,7 +98,7 @@ class video_encoder{
                 $command .= '-re ';
             }
             else{
-                mklog(2,'Unable to use realTime due to 2pass being enabled');
+                mklog(2,'Unable to use realTime with 2pass enabled');
             }
         }
 
@@ -175,10 +220,9 @@ class video_encoder{
 
         if(is_int($options['cpuThreads'])){
             $threads = intval($options['cpuThreads']);
-            if($threads < 0){
-                $threads = 1;
+            if($threads > -1){
+                $command .= '-threads ' . $threads . ' ';
             }
-            $command .= '-threads ' . $threads . ' ';
         }
 
         $tempOutName = $outPathFolder . '\\' . $outPathFileName . "_tmp" . time::millistamp() . $outPathFileExtension;
@@ -272,56 +316,23 @@ class video_encoder{
 
         return true;
     }
-    public static function encode_video_copyFiles(string $inPath, string $outPath, array $options=[]):bool{
-        if(!is_file($inPath)){
-            mklog(2,'Input file does not exist');
+    public static function addEncodeToConductor(string $inPath, string $outPath, array $options=[], string $conductorIp="127.0.0.1", int $conductorPort=52000):string|false{
+        $functionString = "video_encoder::encode_video(";
+        $functionString .= '"' . files::validatePath($inPath,false) . '",';
+        $functionString .= '"' . files::validatePath($outPath,false) . '",';
+        $functionString .= 'json_decode(base64_decode("' . base64_encode(json_encode($options)) . '"),true));';
+
+        $functionString = str_ireplace("\\","\\\\",$functionString);
+
+        $conductorJob = conductor_client::addJob($conductorIp, $functionString, $conductorPort);
+        if(is_string($conductorJob)){
+            mklog(1,'Added job ' . $conductorJob . ' to conductor ' . $conductorIp . ':' . $conductorPort);
+            return true;
+        }
+        else{
+            mklog(2,'Failed to add job to conductor ' . $conductorIp . ':' . $conductorPort);
             return false;
         }
-
-        if(is_file($outPath)){
-            mklog(2,'Output file already exists');
-            return false;
-        }
-
-        $base = getcwd() . "\\temp\\video_encoder\\" . time();
-
-        $inPath2 = $base . "-in";
-        $inPathExt = files::getFileExtension($inPath);
-        if(!empty($inPathExt)){
-            $inPath2 .= "." . $inPathExt;
-        }
-
-        $outPath2 = $base . "-out";
-        $outPathExt = files::getFileExtension($outPath);
-        if(!empty($outPathExt)){
-            $outPath2 .= "." . $outPathExt;
-        }
-
-        //Copy file
-        if(!files::copyFile($inPath, $inPath2)){
-            if(is_file($inPath2)){
-                unlink($inPath2);
-            }
-            return false;
-        }
-
-        if(!self::encode_video($inPath2, $outPath2, $options)){
-            unlink($inPath2);
-            return false;
-        }
-
-        if(!files::copyFile($outPath2, $outPath)){
-            if(is_file($outPath)){
-                unlink($outPath);
-            }
-            unlink($inPath2);
-            return false;
-        }
-
-        unlink($inPath2);
-        unlink($outPath2);
-        
-        return true;
     }
     public static function encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive=false, bool|string $jobId=false, array $videoTypes=["mp4","mov","mkv","avi"], array $encodeOptions=[], string $outFileExtension="mp4", bool $deleteSourceAfter=false, bool $useConductor=false):bool{
         $return = false;
@@ -373,7 +384,7 @@ class video_encoder{
                     $outPath = str_replace($sourceFolder,$destinationFolder,$tempPath);
 
                     if($useConductor){
-                        $functionString = "video_encoder::encode_video" . (settings::read('copyFilesToLocal') ? "_copyFiles" : "") . "(";
+                        $functionString = "video_encoder::encode_video(";
                         $functionString .= '"' . files::validatePath($file,false) . '",';
                         $functionString .= '"' . files::validatePath($outPath,false) . '",';
                         $functionString .= data_types::array_to_eval_string($encodeOptions) . ");";
@@ -398,12 +409,7 @@ class video_encoder{
                         }
                     }
                     else{
-                        if(settings::read('copyFilesToLocal')){
-                            $encodeSuccess = self::encode_video_copyFiles($file, $outPath, $encodeOptions);
-                        }
-                        else{
-                            $encodeSuccess = self::encode_video($file, $outPath, $encodeOptions);
-                        }
+                        $encodeSuccess = self::encode_video($file, $outPath, $encodeOptions);
 
                         if(self::afterFolderEncode($encodeSuccess, $file, $outPath, $deleteSourceAfter, $someNumber, $jobFolder)){
                             $return = true;

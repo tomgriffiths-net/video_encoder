@@ -22,8 +22,15 @@ video_encoder is a PHP-CLI package that provides functionality to encode videos 
 - **livePreviewHeight**: Integer, default of 39, specifies the height of the live preview.
 - **2pass**: Boolean, default of false, specifies weather ffmpeg should first scan the file before encoding, will not be enabled if the video streams are only being copied (e.g. "-c:v copy" is present).
 
+# Settings
+- **presetsPath**: String, default of ""videoencoder/presets", specifies the directory to keep presets in.
+- **secondTry**: Boolean, default of true, specifies weather to try a second time if ffmpeg fails.
+- **allowCinelikeDSaturationModification**: Boolean, default of false, specifies weather to apply a 1.3x saturation filter to MOV videos that have been recorded in the panasonic CINELIKE-D colour profile.
+- **copyFilesToLocal**: Boolean, default of false, specifies weather to copy video files to and from temporary local storage when encoding a video.
+
 # Functions
 - **encode_video(string $inPath, string $outPath, array $options=[]):bool**: Encodes a video with the specified options. Returns true on success or false on failure.
+- **addEncodeToConductor(string $inPath, string $outPath, array $options=[], string $conductorIp="127.0.0.1", int $conductorPort=52000):string|false**: Adds a single video encode task to a conductor server, returns the job id on success or false on failure.
 - **encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive=false, bool|string $jobId=false, array $videoTypes=["mp4","mov","mkv","avi"], array $encodeOptions=[], string $outFileExtension="mp4", bool $deleteSourceAfter=false, bool $useConductor=false):bool**: Encodes a folder of videos and calls encode_video for each one, can add jobs to conductor instead of executing on the local machine if needed. Returns true on success and false on failure.
 - **getFolderLength(string $sourceFolder, bool $recursive=false, array $videoTypes=["mp4","mov","mkv","avi"]):int|false**: Calculates the total duration of all the videos in a folder while showing a running total in the command line. Returns the total length in seconds on success or false on failure.
 - **isVideo(string $path, array $videoTypes=["mp4","mov","mkv","avi"]):bool**: Checks weather a file has an extension in the $videoTypes array. Returns true on success or false on failure.
@@ -35,3 +42,6 @@ video_encoder is a PHP-CLI package that provides functionality to encode videos 
 - **createPreset(string $name, array $options=[], $overwrite=true):bool**: Creates a preset with the given video options. Returns true on success or false on failure.
 - **cut(string $inPath, string $outPath, int|float|false $startTime=false, int|float|false $length=false):bool**: Cuts a given video, if a start time is set then some of the source will have to be re encoded, the amount varies for each video, the length is the length of the video after the start time, a negative length will cut that many seconds of the end of the video. Returns true on success or false on failure. Does not work on some videos as there are too many keyframes for php to process.
 - **cutFolder(string $sourceFolder, string $destinationFolder, int|float|false $startTime=false, int|float|false $length=false, bool $recursive=false, array $videoTypes=["mp4","mov","mkv","avi"]):bool**: Runs the cut function on a group of video files. Returns true on success or false on failure.
+- **getVideoBitrate(string $path):int|false**: Gets the overall bitrate of a video, returns the bitrate in bits per second on success or false on failure.
+- **useCompressionToTargetBitrate(string $inPath, string $outPath, string $customArgs, int $bitrate, string $mode="closest", int $minCompression=20, int $maxCompression=40):bool**: Uses a compression value to tarfget a bitrate, rather than specifying an exact bitrate, can be slow sometimes, bitrate is in bits per second, mode can be min or max or closest, replaces "<cmp>" with the compression number in the custom args parameter, returns true on success or false on failure.
+- **useCompressionToTargetBitrateOnFolder(string $sourceFolder, string $destinationFolder, string $customArgs, int $bitrate, string $mode="closest", int $minCompression=20, int $maxCompression=40, bool $recursive=false, array $videoTypes=["mp4","mov","mkv","avi"]):bool**: Runs useCompressionToTargetBitrate() on each video file in a folder, each video file will be processed seperately, returns true on success or false on failure.
