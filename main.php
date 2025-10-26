@@ -283,7 +283,9 @@ class video_encoder{
         }
 
         if($options['livePreview']){
-            self::preview($command, $options['livePreviewWidth'], $options['livePreviewHeight']);
+            if(!self::preview($command)){
+                return false;
+            }
         }
         else{
             exec($command);
@@ -981,8 +983,6 @@ class video_encoder{
             "customArgs" => false,
             "commandIntoFile" => false,
             "livePreview" => false,
-            "livePreviewWidth" => 69,
-            "livePreviewHeight" => 39,
             "2pass" => false
         ];
 
@@ -996,40 +996,49 @@ class video_encoder{
         
         return $outOptions;
     }
-    private static function preview(string $command, int $width, int $height):bool{
-        $bytesPerFrame = $width * $height * 3;
-        if($bytesPerFrame > 8192){//Max pipe buffer
-            mklog(2,'Specified preview frame size is too large');
+    private static function preview(string $command):bool{
+        // Extract any -t or -to arguments from the original command to apply to preview
+        $timeLimit = '';
+        if(preg_match('/-to\s+(\S+)/', $command, $matches)){
+            $timeLimit = '-to ' . escapeshellarg($matches[1]);
+        }
+        elseif(preg_match('/-t\s+(\S+)/', $command, $matches)){
+            $timeLimit = '-t ' . escapeshellarg($matches[1]);
+        }
+
+        $ffmpegCmd = $command . ' ' . $timeLimit . '-vf "scale=256:144" -f rawvideo -pix_fmt rgb24 -an pipe:1';
+
+        $ffplayExe = e_ffmpeg::path('ffplay');
+        if(!is_string($ffplayExe)){
+            mklog(2, 'Failed to find ffplay.exe');
+            return false;
+        }
+        $ffplayCmd = '"' . $ffplayExe . '" -autoexit -fflags nobuffer -flags low_delay -framedrop -sync ext -f rawvideo -pixel_format rgb24 -video_size 256x144 -an -vf "setpts=0" -window_title "video_encoder Preview" -x 864 -y 486 -loglevel error pipe:0';
+
+        $ffplay = proc_open($ffplayCmd, [['pipe', 'r']], $playPipes);
+
+        if(!is_resource($ffplay)){
+            mklog(2,"Failed to open ffplay process (preview mode)");
             return false;
         }
 
-        $ffmpegCmd = $command . ' -filter:v "scale=' . $width . ':' . $height . '" -f rawvideo -pix_fmt rgb24 pipe:0';
-        
         // Open FFmpeg process with pipes
-        $process = proc_open($ffmpegCmd, [['pipe', 'w']], $pipes, null, null, ['create_new_console'=>true]);
-        
-        if(!is_resource($process)){
+        $ffmpeg = proc_open($ffmpegCmd, [1=>$playPipes[0]], $ffmpegPipes);
+
+        if(!is_resource($ffmpeg)){
             mklog(2,"Failed to open ffmpeg process (preview mode)");
             return false;
         }
-        
-        cli_pixels::set_screen_size($width,$height);
-        
-        while(true){
-            // Read from FFmpeg stdout
-            $data = fread($pipes[0], $bytesPerFrame);
-            if($data !== false){
-                if(!cli_pixels::showRgbFrame($data, $width, $height)){
-                    echo "No more data\n";
-                    break;
-                }
-            }
+
+        while(proc_get_status($ffmpeg)['running']){
+            sleep(1);
         }
 
         // Close
-        fclose($pipes[0]);
-        $exitCode = proc_close($process);
-        
+        @fclose($playPipes[0]);
+        @proc_close($ffplay);
+        $exitCode = proc_close($ffmpeg);
+
         if($exitCode !== 0){
             mklog(2,"Ffmpeg did not exit properly (preview mode)");
             return false;
