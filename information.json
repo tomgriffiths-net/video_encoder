@@ -8,7 +8,6 @@
         "settings": 2,
         "e_ffmpeg": 4,
         "math": 4,
-        "conductor_client": 4,
-        "cli_pixels": 3
+        "conductor_client": 4
     }
 }
