@@ -1,6 +1,10 @@
 # video_encoder
 video_encoder is a PHP-CLI package that provides functionality to encode videos using ffmpeg.
 
+# Commands
+- **cropdetect [videoPath]**: Prints out crop information, uses detectVideoCrop function.
+- **mediainfo [videoPath] (options)**: Prints out ffprobe information about a media file, optional "-showstreams" to display stream information.
+
 # Video Options
 - **outputResolutionWidth**: Integer, default of 1920, specifies the width of the output video, cannot be smaller than 10 or larger than 8192.
 - **outputResolutionHeight**: Integer, default of 1080, specifies the height of the output video, cannot be smaller than 10 or larger than 4320.
@@ -43,3 +47,4 @@ video_encoder is a PHP-CLI package that provides functionality to encode videos 
 - **getVideoBitrate(string $path):int|false**: Gets the overall bitrate of a video, returns the bitrate in bits per second on success or false on failure.
 - **useCompressionToTargetBitrate(string $inPath, string $outPath, string $customArgs, int $bitrate, string $mode="closest", int $minCompression=20, int $maxCompression=40):bool**: Uses a compression value to tarfget a bitrate, rather than specifying an exact bitrate, can be slow sometimes, bitrate is in bits per second, mode can be min or max or closest, replaces "&lt;cmp&gt;" with the compression number in the custom args parameter, returns true on success or false on failure.
 - **useCompressionToTargetBitrateOnFolder(string $sourceFolder, string $destinationFolder, string $customArgs, int $bitrate, string $mode="closest", int $minCompression=20, int $maxCompression=40, bool $recursive=false, array $videoTypes=["mp4","mov","mkv","avi"]):bool**: Runs useCompressionToTargetBitrate() on each video file in a folder, each video file will be processed seperately, returns true on success or false on failure.
+- **detectVideoCrop(string $path):array|false**: Returns crop information on a video file on success or false on failure.

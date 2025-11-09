@@ -14,7 +14,57 @@ class video_encoder{
         if(!self::doesPresetExist("default")){
             self::createPreset("default",[],false);
         }
+
+        $commands = ["mediainfo","cropdetect"];
+        foreach($commands as $command){
+            cli::registerAlias($command, "video_encoder " . $command);
+        }
     }
+    public static function command($line):void{
+        $command = cli::parseLine($line);
+
+        if(!isset($command['args'][0])){
+            echo "Please enter a command, see https://github.com/tomgriffiths-net/video_encoder for help.\n";
+            return;
+        }
+
+        $commandName = strtolower(array_shift($command['args']));
+
+        if(in_array($commandName, ["mediainfo","cropdetect"])){
+            if(!isset($command['args'][0])){
+                echo "You need to specify an input file.\n";
+                return;
+            }
+            if(!is_file($command['args'][0])){
+                echo "The input file " . $command['args'][0] . " does not exist.\n";
+                return;
+            }
+        }
+
+        if($commandName === "mediainfo"){
+            $info = self::getVideoInfo($command['args'][0]);
+            if(!is_array($info) || !isset($info['format'])){
+                echo "Failed to get video info.\n";
+                return;
+            }
+
+            if(in_array("showstreams", $command['options'])){
+                echo json_encode($info, JSON_PRETTY_PRINT) . "\n";
+            }
+            else{
+                echo json_encode($info['format'], JSON_PRETTY_PRINT) . "\n";
+            }
+        }
+        elseif($commandName === "cropdetect"){
+            $info = self::detectVideoCrop($command['args'][0]);
+            if(!is_array($info)){
+                echo "Failed to get crop information.\n";
+                return;
+            }
+            echo json_encode($info, JSON_PRETTY_PRINT) . "\n";
+        }
+    }
+
     public static function encode_video(string $inPath, string $outPath, array $options=[], bool $allowFileCopy=true):bool{
         if(!is_file($inPath)){
             mklog(2,'Input file does not exist');
@@ -916,6 +966,77 @@ class video_encoder{
         }
 
         return $return;
+    }
+    public static function detectVideoCrop(string $path):array|false{
+        $ffmpeg = e_ffmpeg::path("ffmpeg");
+
+        $videoInfo = self::getVideoInfo($path);
+        if(!is_array($videoInfo)){
+            mklog(2, "Failed to get video info");
+            return false;
+        }
+
+        if(!isset($videoInfo['format']['duration']) || !is_numeric($videoInfo['format']['duration'])){
+            mklog(2, "Video info incomplete");
+            return false;
+        }
+        $middlePoint = (round(floatval($videoInfo['format']['duration'])) / 2) - 30;
+
+        $origWidth = null;
+        $origHeight = null;
+        foreach($videoInfo['streams'] as $stream){
+            if($stream['codec_type'] === "video"){
+                $origWidth = $stream['width'];
+                $origHeight = $stream['height'];
+            }
+        }
+        if(!$origWidth || !$origHeight){
+            mklog(2, "Failed to get video resolution");
+            return false;
+        }
+
+        $output = shell_exec(sprintf(
+            '%s -ss %d -i %s -t 60 -vf cropdetect=24:16:0 -f null - 2>&1',
+            escapeshellarg($ffmpeg),
+            $middlePoint,
+            escapeshellarg($path)
+        ));
+        if(!$output){
+            mklog(2, "Failed to scan video for cropping");
+            return false;
+        }
+
+        $lines = explode("\n", $output);
+        $cropValues = [];
+        
+        foreach($lines as $line){
+            if(preg_match('/crop=(\d+:\d+:\d+:\d+)/', $line, $matches)){
+                $cropValues[] = $matches[1];
+            }
+        }
+        if(empty($cropValues)){
+            mklog(2, "Failed to get crop values for video");
+            return false;
+        }
+        
+        // Get the most common crop value (mode)
+        $cropCounts = array_count_values($cropValues);
+        arsort($cropCounts);
+        $mostCommonCrop = key($cropCounts);
+        
+        // Parse crop values to check if borders exist
+        list($width, $height, $x, $y) = explode(':', $mostCommonCrop);
+        
+        // Check if cropping is needed
+        $hasBorders = ($x != 0 || $y != 0 || $width != $origWidth || $height != $origHeight);
+        
+        return [
+            'has_borders' => $hasBorders,
+            'crop_filter' => $hasBorders ? "crop={$mostCommonCrop}" : null,
+            'crop_value' => $mostCommonCrop,
+            'original_size' => "{$origWidth}x{$origHeight}",
+            'cropped_size' => "{$width}x{$height}"
+        ];
     }
 
     private static function makeJobFolderString(string|bool $jobId=false):string{
