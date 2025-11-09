@@ -997,7 +997,7 @@ class video_encoder{
         }
 
         $output = shell_exec(sprintf(
-            '%s -ss %d -i %s -t 60 -vf cropdetect=24:16:0 -f null - 2>&1',
+            '%s -ss %d -i %s -t 60 -vf cropdetect=round=2 -f null - 2>&1',
             escapeshellarg($ffmpeg),
             $middlePoint,
             escapeshellarg($path)
