@@ -1,7 +1,7 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 24,
+    "version": 25,
     "author": "tom",
     "description": "",
     "dependencies": {

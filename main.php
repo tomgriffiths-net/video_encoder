@@ -988,6 +988,7 @@ class video_encoder{
             if($stream['codec_type'] === "video"){
                 $origWidth = $stream['width'];
                 $origHeight = $stream['height'];
+                break;
             }
         }
         if(!$origWidth || !$origHeight){
