@@ -303,6 +303,8 @@ class video_encoder{
             return false;
         }
 
+        mklog(1, 'Processing file ' . $inPath);
+
         if($options['2pass']){
             $passLogDir = getcwd() . '\\temp\\video_encoder\\2passlogs';
             files::ensureFolder($passLogDir);
@@ -386,7 +388,7 @@ class video_encoder{
             return false;
         }
     }
-    public static function encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive=false, bool|string $jobId=false, array $videoTypes=["mp4","mov","mkv","avi"], array $encodeOptions=[], string $outFileExtension="mp4", bool $deleteSourceAfter=false, bool $useConductor=false):bool{
+    public static function encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive=false, bool|string $jobId=false, array $videoTypes=["mp4","mov","mkv","avi"], array $encodeOptions=[], string $outFileExtension="mp4", bool $deleteSourceAfter=false, bool $useConductor=false, string $filter=""):bool{
         $return = false;
         $saturationModified = false;
         if(is_dir($sourceFolder)){
@@ -418,6 +420,11 @@ class video_encoder{
                     $videoInfo = self::getVideoInfo($file);
                     if(!isset($videoInfo['format']['filename']) || !isset($videoInfo['format']['bit_rate']) || !isset($videoInfo['streams'])){
                         mklog(2,"FolderEncode: " . $file . " Is broken or unreadable");
+                        continue;
+                    }
+
+                    if(!self::matchFilter($videoInfo, $filter)){
+                        mklog(1,"FolderEncode: Skipping (filter) " . $file);
                         continue;
                     }
                     
@@ -622,6 +629,74 @@ class video_encoder{
         }
 
         return false;
+    }
+    public static function getStreamMap(array $videoInfo):array{
+        if(!isset($videoInfo['streams']) || !is_array($videoInfo['streams'])){
+            return [];
+        }
+
+        $return = [];
+
+        foreach($videoInfo['streams'] as $stream){
+
+            if(!isset($stream['index']) || !is_int($stream['index'])){
+                continue;
+            }
+
+            if(!isset($stream['codec_type']) || !is_string($stream['codec_type'])){
+                $stream['codec_type'] = "unknown";
+            }
+
+            $return[$stream['codec_type']][] = $stream['index'];
+        }
+
+        return $return;
+    }
+    public static function nameStreams(array $videoInfo, bool $shortHand=true):array|false{
+        if(!isset($videoInfo['streams']) || !is_array($videoInfo['streams'])){
+            return false;
+        }
+
+        $map = self::getStreamMap($videoInfo);
+        if(empty($map)){
+            return false;
+        }
+
+        $originalStreams = $videoInfo['streams'];
+        unset($videoInfo['streams']);
+
+        foreach($map as $type => $streamNumbers){
+            foreach($streamNumbers as $typeStreamNumber => $streamNumber){
+                if($shortHand){
+                    $type = substr($type, 0, 1);
+                }
+                $videoInfo['streams'][$type . ':' . $typeStreamNumber] = $originalStreams[$streamNumber];
+            }
+        }
+
+        return $videoInfo;
+    }
+    public static function matchFilter(array $videoInfo, string $filter):bool{
+        if(empty($filter)){
+            return true;
+        }
+
+        if(!preg_match('/^(?=.+)[a-zA-Z_$()!][a-zA-Z0-9_\[\].\s$(),"\'&|!<>=+:-]*$/', $filter)){
+            return false;
+        }
+
+        $info = self::nameStreams($videoInfo);
+        unset($videoInfo);
+        if(!is_array($info)){
+            return false;
+        }
+
+        try{
+            return eval('return (' . $filter . ');');
+        }
+        catch(\Error){
+            return false;
+        }
     }
     public static function doesPresetExist(string $name):bool{
         $path = self::presetPath($name);
