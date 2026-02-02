@@ -1,9 +1,9 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 27,
+    "version": 28,
     "author": "tom",
-    "description": "Added filter option in encode_folder function",
+    "description": "Added \"same\" file extension in encode_folder to preserve original file extension",
     "dependencies": {
         "settings": 2,
         "e_ffmpeg": 4,

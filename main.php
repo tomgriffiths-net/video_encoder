@@ -388,7 +388,7 @@ class video_encoder{
             return false;
         }
     }
-    public static function encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive=false, bool|string $jobId=false, array $videoTypes=["mp4","mov","mkv","avi"], array $encodeOptions=[], string $outFileExtension="mp4", bool $deleteSourceAfter=false, bool $useConductor=false, string $filter=""):bool{
+    public static function encode_folder(string $sourceFolder, string $destinationFolder, bool $recursive=false, bool|string $jobId=false, array $videoTypes=["mp4","mov","mkv","avi"], array $encodeOptions=[], string $outFileExtension="same", bool $deleteSourceAfter=false, bool $useConductor=false, string $filter=""):bool{
         $return = false;
         $saturationModified = false;
         if(is_dir($sourceFolder)){
@@ -439,6 +439,9 @@ class video_encoder{
 
                     $someNumber = intval(time::millistamp());
                     $fileExtenstion = files::getFileExtension($file);
+                    if($outFileExtension === "same"){
+                        $outFileExtension = $fileExtenstion;
+                    }
                     $tempPath = str_replace($fileExtenstion,$someNumber . "_TEMP." . $outFileExtension,$file);
                     $outPath = str_replace($sourceFolder,$destinationFolder,$tempPath);
 
