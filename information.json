@@ -1,9 +1,9 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 29,
+    "version": 30,
     "author": "tom",
-    "description": "Added ingest function",
+    "description": "Fixed ingest sourceSuffix",
     "dependencies": {
         "settings": 2,
         "e_ffmpeg": 4,

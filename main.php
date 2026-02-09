@@ -1196,7 +1196,7 @@ class video_encoder{
             return false;
         }
 
-        return self::encode_folder($inPath, $profile['dest'], $profile['recursive'], false, $profile['types'], $profile['encodeOps'], $profile['outExt'], $profile['deleteSourceAfter'], false, $profile['filter']);
+        return self::encode_folder($inPath . $profile['sourceSuffix'], $profile['dest'], $profile['recursive'], false, $profile['types'], $profile['encodeOps'], $profile['outExt'], $profile['deleteSourceAfter'], false, $profile['filter']);
     }
 
     private static function makeJobFolderString(string|bool $jobId=false):string{
