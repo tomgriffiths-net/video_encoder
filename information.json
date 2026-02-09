@@ -1,9 +1,9 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 28,
+    "version": 29,
     "author": "tom",
-    "description": "Added \"same\" file extension in encode_folder to preserve original file extension",
+    "description": "Added ingest function",
     "dependencies": {
         "settings": 2,
         "e_ffmpeg": 4,

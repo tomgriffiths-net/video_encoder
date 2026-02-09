@@ -15,9 +15,23 @@ class video_encoder{
             self::createPreset("default",[],false);
         }
 
-        $commands = ["mediainfo","cropdetect"];
+        $commands = ["mediainfo","cropdetect","ingest"];
         foreach($commands as $command){
             cli::registerAlias($command, "video_encoder " . $command);
+        }
+
+        if(!is_file("videoencoder\\ingests\\example.json")){
+            json::writeFile("videoencoder\\ingests\\example.json", [
+                "dest" => "C:\\MyIngests",
+                "recursive" => true,
+                "types" => ["mp4","mov","mkv","avi"],
+                "encodeOps" => [
+                    "customArgs" => "-map 0 -c copy -avoid_negative_ts make_zero -movflags +faststart -loglevel warning"
+                ],
+                "outExt" => "mov",
+                "deleteSourceAfter" => false,
+                "filter" => ""
+            ]);
         }
     }
     public static function command($line):void{
@@ -30,7 +44,39 @@ class video_encoder{
 
         $commandName = strtolower(array_shift($command['args']));
 
-        if(in_array($commandName, ["mediainfo","cropdetect"])){
+        if($commandName === "ingest"){
+            if(!isset($command['args'][0])){
+                echo "You need to specify an ingest profile.\n";
+                return;
+            }
+
+            if(!isset($command['args'][1])){
+                echo "You need to specify an input path.\n";
+                return;
+            }
+            if(!is_dir($command['args'][1])){
+                echo "The input directory does not exist.\n";
+                return;
+            }
+
+            if(isset($command['args'][2])){
+                if(is_dir($command['args'][2]) || is_file($command['args'][2])){
+                    echo "The output already exists.\n";
+                    return;
+                }
+            }
+            else{
+                $command['args'][2] = null;
+            }
+
+            if(self::ingest($command['args'][0], $command['args'][1], $command['args'][2])){
+                echo "Ingest finished.\n";
+            }
+            else{
+                echo "Failed to ingest all files.\n";
+            }
+        }
+        elseif(in_array($commandName, ["mediainfo","cropdetect"])){
             if(!isset($command['args'][0])){
                 echo "You need to specify an input file.\n";
                 return;
@@ -39,29 +85,29 @@ class video_encoder{
                 echo "The input file " . $command['args'][0] . " does not exist.\n";
                 return;
             }
-        }
 
-        if($commandName === "mediainfo"){
-            $info = self::getVideoInfo($command['args'][0]);
-            if(!is_array($info) || !isset($info['format'])){
-                echo "Failed to get video info.\n";
-                return;
-            }
+            if($commandName === "mediainfo"){
+                $info = self::getVideoInfo($command['args'][0]);
+                if(!is_array($info) || !isset($info['format'])){
+                    echo "Failed to get video info.\n";
+                    return;
+                }
 
-            if(in_array("showstreams", $command['options'])){
-                echo json_encode($info, JSON_PRETTY_PRINT) . "\n";
+                if(in_array("showstreams", $command['options'])){
+                    echo json_encode($info, JSON_PRETTY_PRINT) . "\n";
+                }
+                else{
+                    echo json_encode($info['format'], JSON_PRETTY_PRINT) . "\n";
+                }
             }
             else{
-                echo json_encode($info['format'], JSON_PRETTY_PRINT) . "\n";
+                $info = self::detectVideoCrop($command['args'][0]);
+                if(!is_array($info)){
+                    echo "Failed to get crop information.\n";
+                    return;
+                }
+                echo json_encode($info, JSON_PRETTY_PRINT) . "\n";
             }
-        }
-        elseif($commandName === "cropdetect"){
-            $info = self::detectVideoCrop($command['args'][0]);
-            if(!is_array($info)){
-                echo "Failed to get crop information.\n";
-                return;
-            }
-            echo json_encode($info, JSON_PRETTY_PRINT) . "\n";
         }
     }
 
@@ -1116,6 +1162,41 @@ class video_encoder{
             'original_size' => "{$origWidth}x{$origHeight}",
             'cropped_size' => "{$width}x{$height}"
         ];
+    }
+    public static function ingest(string $profile, string $inPath, ?string $outPath=null):bool{
+        if(!preg_match('/^[a-z0-9]+$/', $profile)){
+            mklog(2, "Invalid profile");
+            return false;
+        }
+
+        $profile = json::readFile("videoencoder\\ingests\\" . $profile);
+        if(!is_array($profile)){
+            mklog(2, "Could not read profile " . $profile);
+            return false;
+        }
+
+        $defaults = [
+            "sourceSuffix" => "",
+            "recursive" => true,
+            "type" => ["mp4","mov","mkv","avi"],
+            "encodeOps" => [],
+            "outExt" => "same",
+            "deleteSourceAfter" => false,
+            "filter" => "false"
+        ];
+
+        $profile = array_merge($defaults, $profile);
+
+        if(is_string($outPath)){
+            $profile['dest'] = $outPath;
+        }
+
+        if(!isset($profile['dest']) || !is_string($profile['dest'])){
+            mklog(2, "No destination was specified");
+            return false;
+        }
+
+        return self::encode_folder($inPath, $profile['dest'], $profile['recursive'], false, $profile['types'], $profile['encodeOps'], $profile['outExt'], $profile['deleteSourceAfter'], false, $profile['filter']);
     }
 
     private static function makeJobFolderString(string|bool $jobId=false):string{
