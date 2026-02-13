@@ -22,6 +22,7 @@ class video_encoder{
 
         if(!is_file("videoencoder\\ingests\\example.json")){
             json::writeFile("videoencoder\\ingests\\example.json", [
+                //This is an example of converting into mov format and saving into C:\MyIngests
                 "dest" => "C:\\MyIngests",
                 "recursive" => true,
                 "types" => ["mp4","mov","mkv","avi"],
@@ -1169,7 +1170,7 @@ class video_encoder{
             return false;
         }
 
-        $profile = json::readFile("videoencoder\\ingests\\" . $profile);
+        $profile = json::readFile("videoencoder\\ingests\\" . $profile . ".json");
         if(!is_array($profile)){
             mklog(2, "Could not read profile " . $profile);
             return false;
