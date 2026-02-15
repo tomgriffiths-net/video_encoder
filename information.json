@@ -1,7 +1,7 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 31,
+    "version": 32,
     "author": "tom",
     "description": "Added <code:...> tag for use in customArgs",
     "dependencies": {
