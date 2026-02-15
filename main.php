@@ -179,6 +179,10 @@ class video_encoder{
         $outPathFileExtension = "." . files::getFileExtension($outPath);
         $outPathFileName = str_replace($outPathFileExtension,"",files::getFileName($outPath));
 
+        if(is_string($options['customArgs']) && !empty($options['customArgs'])){
+            $options['customArgs'] = self::doCodeTag($options['customArgs'], $inPath);
+        }
+
         if(is_string($options['customArgs']) && !empty($options['customArgs']) && $options['2pass']){
             if(!self::customArgsAllow2pass($options['customArgs'])){
                 echo "Skipping 2pass\n";
@@ -351,6 +355,8 @@ class video_encoder{
         }
 
         mklog(1, 'Processing file ' . $inPath);
+
+        
 
         if($options['2pass']){
             $passLogDir = getcwd() . '\\temp\\video_encoder\\2passlogs';
@@ -731,22 +737,13 @@ class video_encoder{
             return true;
         }
 
-        if(!preg_match('/^(?=.+)[a-zA-Z_$()!][a-zA-Z0-9_\[\].\s$(),"\'&|!<>=+:-]*$/', $filter)){
-            return false;
-        }
-
         $info = self::nameStreams($videoInfo);
         unset($videoInfo);
         if(!is_array($info)){
             return false;
         }
 
-        try{
-            return eval('return (' . $filter . ');');
-        }
-        catch(\Error){
-            return false;
-        }
+        return (bool) self::saferEval($filter, ['info'=>$info]);
     }
     public static function doesPresetExist(string $name):bool{
         $path = self::presetPath($name);
@@ -1200,6 +1197,65 @@ class video_encoder{
         return self::encode_folder($inPath . $profile['sourceSuffix'], $profile['dest'], $profile['recursive'], false, $profile['types'], $profile['encodeOps'], $profile['outExt'], $profile['deleteSourceAfter'], false, $profile['filter']);
     }
 
+    private static function doCodeTag(string $command, string $file):?string{
+        $pos = strpos($command, '<code:');
+        if($pos !== false){
+            $end = strpos($command, '>', $pos);
+            if($end){
+                $info = self::getVideoInfo($file);
+                if(!is_array($info)){
+                    return null;
+                }
+                $info = self::nameStreams($info);
+                if(!is_array($info)){
+                    return null;
+                }
+
+                echo "e\n";
+
+                echo $code = substr($command, $pos +6, $end - $pos -6);
+                echo "\n";
+
+                echo $secondBit = self::saferEval($code, ['info'=>$info]);
+                echo "\n";
+                if($secondBit === null){
+                    return null;
+                }
+
+                echo $firstBit = substr($command, 0, $pos);
+                echo "\n";
+                echo $thirdBit = substr($command, $end +1);
+                echo "\n";
+
+                $command = $firstBit . $secondBit . $thirdBit;
+
+                if(strpos($command, '<code:')){
+                    $command = self::doCodeTag($command, $file);
+                    if(!is_string($command)){
+                        return null;
+                    }
+                }
+            }
+        }
+
+        return $command;
+    }
+    private static function saferEval(string $thecodethatisrun, array $thevariablesavailaible):mixed{
+        if(!preg_match('/^(?=.+)[a-zA-Z_$()!][a-zA-Z0-9_\[\].\s$(),"\'&|!<>=+:-]*$/', $thecodethatisrun)){
+            return null;
+        }
+
+        foreach($thevariablesavailaible as $avariablename => $avariablevalue){
+            $$avariablename = $avariablevalue;
+        }
+
+        try{
+            return eval('return (' . $thecodethatisrun . ');');
+        }
+        catch(\Error){
+            return null;
+        }
+    }
     private static function makeJobFolderString(string|bool $jobId=false):string{
         if(!is_string($jobId)){
             $jobId = (string) time::stamp();

@@ -1,9 +1,9 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 30,
+    "version": 31,
     "author": "tom",
-    "description": "Fixed ingest sourceSuffix",
+    "description": "Added <code:...> tag for use in customArgs",
     "dependencies": {
         "settings": 2,
         "e_ffmpeg": 4,
