@@ -1211,21 +1211,15 @@ class video_encoder{
                     return null;
                 }
 
-                echo "e\n";
+                $code = substr($command, $pos +6, $end - $pos -6);
 
-                echo $code = substr($command, $pos +6, $end - $pos -6);
-                echo "\n";
-
-                echo $secondBit = self::saferEval($code, ['info'=>$info]);
-                echo "\n";
+                $secondBit = self::saferEval($code, ['info'=>$info]);
                 if($secondBit === null){
                     return null;
                 }
 
-                echo $firstBit = substr($command, 0, $pos);
-                echo "\n";
-                echo $thirdBit = substr($command, $end +1);
-                echo "\n";
+                $firstBit = substr($command, 0, $pos);
+                $thirdBit = substr($command, $end +1);
 
                 $command = $firstBit . $secondBit . $thirdBit;
 
