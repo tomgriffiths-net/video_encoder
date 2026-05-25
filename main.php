@@ -183,6 +183,10 @@ class video_encoder{
             $options['customArgs'] = self::doCodeTag($options['customArgs'], $inPath);
         }
 
+        if(is_string($options['customArgsPrefix']) && !empty($options['customArgsPrefix'])){
+            $options['customArgsPrefix'] = self::doCodeTag($options['customArgsPrefix'], $inPath);
+        }
+
         if(is_string($options['customArgs']) && !empty($options['customArgs']) && $options['2pass']){
             if(!self::customArgsAllow2pass($options['customArgs'])){
                 echo "Skipping 2pass\n";
@@ -193,6 +197,10 @@ class video_encoder{
 
         $command = '"' . e_ffmpeg::path('ffmpeg') . '" ';
         $extra = '';
+
+        if(is_string($options['customArgsPrefix']) && !empty($options['customArgsPrefix'])){
+            $command .= $options['customArgsPrefix'] . " ";
+        }
 
         if($options['realTime']){
             if(!$options['2pass']){
@@ -1313,6 +1321,7 @@ class video_encoder{
             "format" => false,
             "realTime" => false,
             "customArgs" => false,
+            "customArgsPrefix" => false,
             "commandIntoFile" => false,
             "livePreview" => false,
             "2pass" => false
