@@ -1,0 +1,34 @@
+{
+    "nicknames": {
+        "avc": "h264",
+        "x264": "h264",
+        "h265": "hevc",
+        "x265": "hevc"
+    },
+    "formatToEncoder": {
+        "h264": {
+            "cpu": "libx264",
+            "nvenc": "h264_nvenc"
+        },
+        "hevc": {
+            "cpu": "libx265",
+            "nvenc": "hevc_nvenc"
+        },
+        "av1": {
+            "cpu": "libsvtav1",
+            "nvenc": "av1_nvenc"
+        },
+        "vp9": {
+            "cpu": "libvpx-vp9"
+        }
+    },
+    "qualityExtraOptions": {
+        "libvpx-vp9": ["-b","0"]
+    },
+    "notCrfEncoders": {
+        "h264_nvenc": "cq",
+        "hevc_nvenc": "cq",
+        "av1_nvenc": "cq"
+    },
+    "integerQualitySetting": ["libvpx-vp9"]
+}

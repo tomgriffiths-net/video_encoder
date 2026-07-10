@@ -1,0 +1,249 @@
+{
+    "7": {
+        "encode": {
+            "h264": {
+                "formats": {"8": ["420"]},
+                "maxres": [4096,4096],
+                "features": [],
+                "max_bframes": 0
+            }
+        },
+        "decode": {
+            "h264": {
+                "formats": {"8": ["420"]},
+                "maxres": [4096,4096]
+            }
+        }
+    },
+    "9": {
+        "encode": {
+            "h264": {
+                "formats": {"8": ["420","444"]},
+                "maxres": [4096,4096],
+                "features": ["spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 2
+            },
+            "hevc": {
+                "formats": {"8": ["420"]},
+                "maxres": [8192,8192],
+                "features": ["spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 0
+            }
+        },
+        "decode": {
+            "h264": {
+                "formats": {"8": ["420"]},
+                "maxres": [4096,4096]
+            },
+            "hevc": {
+                "formats": {"8": ["420"]
+                },
+                "maxres": [4096,4096]
+            }
+        }
+    },
+    "10": {
+        "encode": {
+            "h264": {
+                "formats": {"8": ["420","444"]},
+                "maxres": [4096,4096],
+                "features": ["spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            },
+            "hevc": {
+                "formats": {"8": ["420","444"], "10": ["420","444"]},
+                "maxres": [8192,8192],
+                "features": ["spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 0
+            }
+        },
+        "decode": {
+            "h264": {
+                "formats": {"8": ["420"]},
+                "maxres": [4096,4096]
+            },
+            "hevc": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            },
+            "vp9": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            }
+        }
+    },
+    "16": {
+        "encode": {
+            "h264": {
+                "formats": {"8": ["420","444"]},
+                "maxres": [4096,4096],
+                "features": ["spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            },
+            "hevc": {
+                "formats": {"8": ["420","444"], "10": ["420","444"]},
+                "maxres": [8192,8192],
+                "features": ["spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 0
+            }
+        },
+        "decode": {
+            "h264": {
+                "formats": {"8": ["420"]},
+                "maxres": [4096,4096]
+            },
+            "hevc": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            },
+            "vp9": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            }
+        }
+    },
+    "20": {
+        "encode": {
+            "h264": {
+                "formats": {"8": ["420","444"]},
+                "maxres": [4096,4096],
+                "features": ["temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            },
+            "hevc": {
+                "formats": {"8": ["420","444"], "10": ["420","444"]},
+                "maxres": [8192,8192],
+                "features": ["temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            }
+        },
+        "decode": {
+            "h264": {
+                "formats": {"8": ["420"]},
+                "maxres": [4096,4096]
+            },
+            "hevc": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            },
+            "vp9": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            }
+        }
+    },
+    "30": {
+        "encode": {
+            "h264": {
+                "formats": {"8": ["420","444"]},
+                "maxres": [4096,4096],
+                "features": ["temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            },
+            "hevc": {
+                "formats": {"8": ["420","444"], "10": ["420","444"]},
+                "maxres": [8192,8192],
+                "features": ["temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            }
+        },
+        "decode": {
+            "h264": {
+                "formats": {"8": [ "420"]},
+                "maxres": [4096,4096]
+            },
+            "hevc": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            },
+            "vp9": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            },
+            "av1": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            }
+        }
+    },
+    "40": {
+        "encode": {
+            "h264": {
+                "formats": {"8": ["420","444"]},
+                "maxres": [4096,4096],
+                "features": ["temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            },
+            "hevc": {
+                "formats": {"8": ["420","444"], "10": ["420","444"]},
+                "maxres": [8192,8192],
+                "features": ["tune_uhq","tf_level","lookahead_level","temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            },
+            "av1": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192],
+                "features": ["tune_uhq","tf_level","lookahead_level","temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            }
+        },
+        "decode": {
+            "h264": {
+                "formats": {"8": ["420"]},
+                "maxres": [4096,4096]
+            },
+            "hevc": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            },
+            "vp9": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            },
+            "av1": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            }
+        }
+    },
+    "50": {
+        "encode": {
+            "h264": {
+                "formats": {"8": ["420","444"], "10": ["420"]},
+                "maxres": [4096,4096],
+                "features": ["temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            },
+            "hevc": {
+                "formats": {"8": ["420","422","444"], "10": ["420","422","444"]},
+                "maxres": [8192,8192],
+                "features": ["tune_uhq","tf_level","lookahead_level","temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            },
+            "av1": {
+                "formats": {"8": ["420","422"], "10": ["420","422"]},
+                "maxres": [8192,8192],
+                "features": ["tune_uhq","tf_level","lookahead_level","temporal-aq","b_ref_mode","spatial-aq","aq-strength","rc-lookahead"],
+                "max_bframes": 4
+            }
+        },
+        "decode": {
+            "h264": {
+                "formats": {"8": ["420"]},
+                "maxres": [4096,4096]
+            },
+            "hevc": {
+                "formats": {"8": ["420","422"], "10": ["420","422"]},
+                "maxres": [8192,8192]
+            },
+            "vp9": {
+                "formats": {"8": ["420"], "10": ["420"]},
+                "maxres": [8192,8192]
+            },
+            "av1": {
+                "formats": {"8": ["420","422"], "10": ["420","422"]},
+                "maxres": [8192,8192]
+            }
+        }
+    }
+}

@@ -1,0 +1,51 @@
+{
+    "libx264": {
+        "slower": "-preset veryslow",
+        "slow":   "-preset slower",
+        "medium": "-preset slow",
+        "fast":   "-preset medium",
+        "faster": "-preset fast"
+    },
+    "libx265": {
+        "slower": "-preset slower",
+        "slow":   "-preset slow",
+        "medium": "-preset medium",
+        "fast":   "-preset fast",
+        "faster": "-preset faster"
+    },
+    "libsvtav1": {
+        "slower": "-preset 2",
+        "slow":   "-preset 3",
+        "medium": "-preset 4",
+        "fast":   "-preset 5",
+        "faster": "-preset 6"
+    },
+    "libvpx-vp9": {
+        "slower": "-deadline good     -cpu-used 0 -row-mt 1 -tile-columns 2 -tile-rows 2",
+        "slow":   "-deadline good     -cpu-used 1 -row-mt 1 -tile-columns 2 -tile-rows 2",
+        "medium": "-deadline good     -cpu-used 2 -row-mt 1 -tile-columns 3 -tile-rows 2",
+        "fast":   "-deadline good     -cpu-used 3 -row-mt 1 -tile-columns 3 -tile-rows 2",
+        "faster": "-deadline realtime -cpu-used 1 -row-mt 1 -tile-columns 2 -tile-rows 2"
+    },
+    "h264_nvenc": {
+        "slower": "-preset p7 -tune hq -rc vbr -rc-lookahead 32 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass fullres",
+        "slow":   "-preset p7 -tune hq -rc vbr -rc-lookahead 32 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass fullres",
+        "medium": "-preset p7 -tune hq -rc vbr -rc-lookahead 32 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass qres",
+        "fast":   "-preset p7 -tune hq -rc vbr -rc-lookahead 24 -spatial-aq 1                -b_ref_mode each -bf 4 -multipass qres",
+        "faster": "-preset p7 -tune hq -rc vbr -rc-lookahead 8                                                      -multipass qres"
+    },
+    "hevc_nvenc": {
+        "slower": "-preset p7 -tune uhq -rc vbr -rc-lookahead 32 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass fullres  -tf_level 4 -lookahead_level 3",
+        "slow":   "-preset p7 -tune uhq -rc vbr -rc-lookahead 32 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass fullres  -tf_level 4 -lookahead_level 3",
+        "medium": "-preset p7 -tune uhq -rc vbr -rc-lookahead 32 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass qres     -tf_level 4 -lookahead_level 3",
+        "fast":   "-preset p7 -tune hq  -rc vbr -rc-lookahead 24 -spatial-aq 1                -b_ref_mode each -bf 4 -multipass qres",
+        "faster": "-preset p7 -tune hq  -rc vbr -rc-lookahead 24 -spatial-aq 1                -b_ref_mode each -bf 4 -multipass disabled"
+    },
+    "av1_nvenc": {
+        "slower": "-preset p7 -tune uhq -rc vbr -rc-lookahead 32 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass fullres  -tf_level 4 -lookahead_level 3",
+        "slow":   "-preset p7 -tune uhq -rc vbr -rc-lookahead 32 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass fullres  -tf_level 4 -lookahead_level 3",
+        "medium": "-preset p7 -tune uhq -rc vbr -rc-lookahead 24 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass fullres  -tf_level 4 -lookahead_level 3",
+        "fast":   "-preset p7 -tune hq  -rc vbr -rc-lookahead 24 -spatial-aq 1 -temporal-aq 1 -b_ref_mode each -bf 4 -multipass qres",
+        "faster": "-preset p7 -tune hq  -rc vbr -rc-lookahead 16 -spatial-aq 1                -b_ref_mode each -bf 4 -multipass disabled"
+    }
+}

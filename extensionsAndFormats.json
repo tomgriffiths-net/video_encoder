@@ -1,0 +1,36 @@
+{
+    "extensionToFormat": {
+        "m4v": "mp4",
+        "qt": "mov",
+        "m4a": "mp4",
+        "m4b": "mp4",
+        "isma": "ismv",
+        "mkv": "matroska",
+        "ts": "mpegts",
+        "m2ts": "mpegts",
+        "ogv": "ogg",
+        "wmv": "asf",
+        "aac": "adts",
+        "oga": "ogg",
+        "png": "image2",
+        "jpg": "image2",
+        "jpeg": "image2"
+    },
+    "formatExtensions": {
+        "matroska": "mkv",
+        "mpegts": "ts",
+        "asf": "wmv",
+        "adts": "aac",
+        "image2": "jpg"
+    },
+    "movFamilyFormats": [
+        "mp4",
+        "mov",
+        "3gp",
+        "3g2",
+        "mj2",
+        "f4v",
+        "ismv",
+        "psp"
+    ]
+}

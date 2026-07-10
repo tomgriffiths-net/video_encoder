@@ -1,12 +1,12 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 32,
+    "version": 34,
     "author": "tom",
-    "description": "Added <code:...> tag for use in customArgs",
+    "description": "Updated encodeVideo and encodeFolder and others related.",
     "dependencies": {
         "settings": 2,
-        "e_ffmpeg": 4,
+        "e_ffmpeg": 6,
         "math": 4,
         "conductor_client": 4
     }
