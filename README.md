@@ -28,7 +28,7 @@ Names and values can be surrounded with quotes to stop spaces seperating them.
 | vmaf2crf/v2c        | - Encoder name.<br> - ve encoder speed preset.<br> - Target VMAF (40 < x <= 100).              |                                                                                      |                                                                                                                             | Takes an encoder name and video_encoder encoder speed preset and returns the crf / crf like quality number required to reach a target VMAF. |
 
 # encodeVideo Options
-- **preset**: A preset to use to fill out unspecified data, this also effects input and output options.
+- **preset**: A preset to use to fill out unspecified data, this only edits the options array.
 - **complexFilter**: String, a complex filter to put into a ffmpeg command after the inputs and before the first maps.
 - **commandIntoFile**: String, a file path to a text file to put the command into rather than running the command, does not contain shell escapes like quotes on file paths.
 - **threads**: Integer, the -threads setting for ffmpeg.
@@ -127,7 +127,7 @@ Each stream is an array that has to contain at least a type and source.
 - **format**: String, most of the time copy.
 
 # encodeFolder Options
-- **preset**: String, a preset name to read settings from the folder array in the preset file.
+- **preset**: String, a preset that fills in the encodeFolder options, input options, and output options, but not the encodeVideo options, that is set by the encodeVideo options "preset" setting.
 - **source**: String, a source override, only works if the $sourceFolder function argument is empty.
 - **destination**: String, a destination override, only works if the $destinationFolder function argument is empty.
 - **sourcePrefix**: String, a prefix for the source folder path.

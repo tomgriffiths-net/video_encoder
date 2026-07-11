@@ -375,8 +375,6 @@ class video_encoder{
         if(self::issetAndType($options, "preset", "string")){
             $presetOptions = self::loadPreset($options['preset']);
             if(is_array($presetOptions)){
-                $inputs  = array_merge($presetOptions['inputs'],  $inputs);
-                $outputs = array_merge($presetOptions['outputs'], $outputs);
                 $options = array_merge($presetOptions['options'], $options);
             }
             else{
@@ -1140,7 +1138,9 @@ class video_encoder{
         if(self::issetAndType($options, "preset", "string")){
             $presetOptions = self::loadPreset($encodeOptions['preset']);
             if(is_array($presetOptions)){
-                $options  = array_merge($presetOptions['folder'],  $options);
+                $options       = array_merge($presetOptions['folder'],  $options);
+                $inputOptions  = array_merge($presetOptions['inputs'],  $inputOptions);
+                $outputOptions = array_merge($presetOptions['outputs'], $outputOptions);
             }
             else{
                 mklog(2, "Failed to read preset " . $options['preset']);
