@@ -1173,7 +1173,7 @@ class video_encoder{
         if(!self::issetAndType($options, "videoTypes", "list")){
             $options['videoTypes'] = ["mp4","mov","mkv","avi"];
         }
-        if(!self::issetAndType($options, "outExtension", "list")){
+        if(!self::issetAndType($options, "outExtension", "string")){
             $options['outExtension'] = "same";
         }
         if(!self::issetAndType($options, "deleteSource", "boolean")){

@@ -1,9 +1,9 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 34,
+    "version": 35,
     "author": "tom",
-    "description": "Updated encodeVideo and encodeFolder and others related.",
+    "description": "Fixed outExtension option for encodeFolder",
     "dependencies": {
         "settings": 2,
         "e_ffmpeg": 6,
