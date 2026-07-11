@@ -1244,7 +1244,7 @@ class video_encoder{
             $fileInputOptions[0]['path'] = $file;
 
             $fileOutputOptions = $outputOptions;
-            $fileOutputOptions[0]['path'] = $file;
+            $fileOutputOptions[0]['path'] = $info['outfolder'] . "/" . $info['tempfile'];
 
             if(isset($options['conductor'])){
                 if(!is_array($options['conductor']) || !self::issetAndType($options['conductor'], "ip", "string") || !self::issetAndType($options['conductor'], "port", "integer")){

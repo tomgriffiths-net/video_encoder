@@ -1,9 +1,9 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 36,
+    "version": 37,
     "author": "tom",
-    "description": "Moved preset inputs and outputs to encodeFolder.",
+    "description": "Fixed encodeFolder.",
     "dependencies": {
         "settings": 2,
         "e_ffmpeg": 6,
