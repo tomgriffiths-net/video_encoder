@@ -1108,13 +1108,13 @@ class video_encoder{
      * @param int $conductorPort The port the conductor server is running on.
      * @return string|false The conductor job id on success or false on failure.
      */
-    public static function addEncodeToConductor(array $inputs, array $outputs, array $options, string $conductorIp="127.0.0.1", int $conductorPort=52000):string|false{
+    public static function addEncodeToConductor(array $inputs, array $outputs, array $options, string $conductorIp="127.0.0.1", int $conductorPort=8080):string|false{
         $functionString = "video_encoder::encodeVideo(";
         $functionString .= "unserialize(base64_decode(\"" . base64_encode(serialize($inputs)) . "\")),";
         $functionString .= "unserialize(base64_decode(\"" . base64_encode(serialize($outputs)) . "\")),";
         $functionString .= "unserialize(base64_decode(\"" . base64_encode(serialize($options)) . "\")));";
 
-        $conductorJob = conductor_client::addJob($conductorIp, $functionString, $conductorPort);
+        $conductorJob = conductor_client::addJob($functionString, ['video_encoder'=>0], null, null, $conductorIp, $conductorPort);
         if(is_string($conductorJob)){
             mklog(1,'Added job ' . $conductorJob . ' to conductor ' . $conductorIp . ':' . $conductorPort);
             return true;
@@ -1260,7 +1260,7 @@ class video_encoder{
                 $finishFunctionString .= '$jobData[\'return\'],';
                 $finishFunctionString .= "unserialize(base64_decode('" . base64_encode(serialize($info)) . "')));";
 
-                $conductorJob = conductor_client::addJob($options['conductor']['ip'], $functionString, $options['conductor']['port'], $finishFunctionString);
+                $conductorJob = conductor_client::addJob($functionString, ['video_encoder'=>0], $finishFunctionString, null, $options['conductor']['ip'], $options['conductor']['port']);
                 if(is_string($conductorJob)){
                     mklog(1,'FolderEncode: Added job ' . $conductorJob . ' to conductor ' . $options['conductor']['ip'] . ':' . $options['conductor']['port']);
                     $return = true;

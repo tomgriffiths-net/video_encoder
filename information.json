@@ -1,13 +1,13 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 37,
+    "version": 38,
     "author": "tom",
-    "description": "Fixed encodeFolder.",
+    "description": "Updated to conductor client v5",
     "dependencies": {
         "settings": 2,
         "e_ffmpeg": 6,
         "math": 4,
-        "conductor_client": 4
+        "conductor_client": 5
     }
 }
