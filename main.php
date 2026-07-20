@@ -856,96 +856,100 @@ class video_encoder{
                         $arguments[] = $stream['maxRate']*2 . "k";
                     }
 
-                    if(!self::issetAndType($stream, "quality", "numeric")){
-                        $stream['quality'] = 95;
-                    }
-                    if(!self::issetAndType($stream, "speed", "string") || !in_array(strtolower($stream['speed']), ["slower","slow","medium","fast","faster"])){
-                        $stream['speed'] = "medium";
-                    }
-                    $stream['quality'] = floatval($stream['quality']);
-                    $stream['speed'] = strtolower($stream['speed']);
+                    if(self::issetAndType($stream, "speed", "string") && in_array(strtolower($stream['speed']), ["slower","slow","medium","fast","faster"])){
+                        $stream['speed'] = strtolower($stream['speed']);
 
-                    $qualitySetting = "crf";
-                    if(self::issetAndType($videoFormats['notCrfEncoders'] ?? [], $stream['encoder'], "string")){
-                        $qualitySetting = $videoFormats['notCrfEncoders'][$stream['encoder']];
-                    }
-                    $qualitySettingValue = self::targetVmafToCrf($stream['encoder'], $stream['speed'], $stream['quality']);
-                    if($qualitySettingValue === null){
-                        mklog(3, "Could not find quality information for encoder " . $stream['encoder'] . " at speed " . $stream['speed']);
-                        return false;
-                    }
-                    if(self::issetAndType($videoFormats, "integerQualitySetting", "list")){
-                        if(in_array($stream['encoder'], $videoFormats['integerQualitySetting'])){
-                            $qualitySettingValue = round($qualitySettingValue);
+                        $videoPresets = json::readFile("packages/video_encoder/files/videoEncoderPresets.json");
+                        if(!is_array($videoPresets) || !isset($videoPresets[$stream['encoder']][$stream['speed']]) || !is_string($videoPresets[$stream['encoder']][$stream['speed']])){
+                            mklog(3, "Could not find speed preset information for encoder " . $stream['encoder'] . " at speed " . $stream['speed']);
+                            return false;
                         }
-                    }
-                    $arguments[] = "-$qualitySetting:" . $stream['type'] . ":" . $stream['typeIndex'];
-                    $arguments[] = $qualitySettingValue;
+                        $speedArgs = $videoPresets[$stream['encoder']][$stream['speed']];
 
-                    $videoPresets = json::readFile("packages/video_encoder/videoEncoderPresets.json");
-                    if(!is_array($videoPresets) || !isset($videoPresets[$stream['encoder']][$stream['speed']]) || !is_string($videoPresets[$stream['encoder']][$stream['speed']])){
-                        mklog(3, "Could not find speed preset information for encoder " . $stream['encoder'] . " at speed " . $stream['speed']);
-                        return false;
-                    }
-                    $speedArgs = $videoPresets[$stream['encoder']][$stream['speed']];
-                    if(strpos($stream['encoder'], "nvenc") !== false){
-                        $features = [];
-                        $maxBf = 0;
-                        if(is_array(self::$nvCapabilities)){
-                            if(isset(self::$nvCapabilities['encode'][$stream['format']]['features']) && is_array(self::$nvCapabilities['encode'][$stream['format']]['features'])){
-                                $features = self::$nvCapabilities['encode'][$stream['format']]['features'];
+                        if(is_int(strpos($stream['encoder'], "nvenc"))){
+                            $features = [];
+                            $maxBf = 0;
+                            if(is_array(self::$nvCapabilities)){
+                                if(isset(self::$nvCapabilities['encode'][$stream['format']]['features']) && is_array(self::$nvCapabilities['encode'][$stream['format']]['features'])){
+                                    $features = self::$nvCapabilities['encode'][$stream['format']]['features'];
+                                }
+                                if(isset(self::$nvCapabilities['encode'][$stream['format']]['max_bframes']) && is_int(self::$nvCapabilities['encode'][$stream['format']]['max_bframes'])){
+                                    $maxBf = self::$nvCapabilities['encode'][$stream['format']]['max_bframes'];
+                                }
                             }
-                            if(isset(self::$nvCapabilities['encode'][$stream['format']]['max_bframes']) && is_int(self::$nvCapabilities['encode'][$stream['format']]['max_bframes'])){
-                                $maxBf = self::$nvCapabilities['encode'][$stream['format']]['max_bframes'];
+                            
+                            if(strpos($speedArgs, "-tune uhq") !== false && !in_array("tune_uhq", $features)){
+                                $speedArgs = str_replace("-tune uhq", "-tune hq", $speedArgs);
                             }
-                        }
-                        
-                        if(strpos($speedArgs, "-tune uhq") !== false && !in_array("tune_uhq", $features)){
-                            $speedArgs = str_replace("-tune uhq", "-tune hq", $speedArgs);
-                        }
 
-                        if(preg_match('/-bf\s+(\d+)/', $speedArgs, $matches, PREG_OFFSET_CAPTURE)){
-                            $fullMatch = $matches[0][0];   // "-bf 3"
-                            //$startPos  = $matches[0][1];   // offset where "-bf 3" starts
-                            //$endPos    = $startPos + strlen($fullMatch); // offset where it ends
+                            if(preg_match('/-bf\s+(\d+)/', $speedArgs, $matches, PREG_OFFSET_CAPTURE)){
+                                $fullMatch = $matches[0][0];   // "-bf 3"
+                                //$startPos  = $matches[0][1];   // offset where "-bf 3" starts
+                                //$endPos    = $startPos + strlen($fullMatch); // offset where it ends
 
-                            $bframeValue = intval($matches[1][0]); // just 3
-                            //$valueStart  = $matches[1][1]; // offset where "3" starts
+                                $bframeValue = intval($matches[1][0]); // just 3
+                                //$valueStart  = $matches[1][1]; // offset where "3" starts
 
-                            if($maxBf < $bframeValue){
-                                mklog(2, "Specified bframes over nvenc limit, reducing to " . $maxBf);
-                                $speedArgs = str_replace($fullMatch, "-bf " . $maxBf, $speedArgs);
+                                if($maxBf < $bframeValue){
+                                    mklog(2, "Specified bframes over nvenc limit, reducing to " . $maxBf);
+                                    $speedArgs = str_replace($fullMatch, "-bf " . $maxBf, $speedArgs);
+                                }
                             }
-                        }
-                        if(strpos($speedArgs, "-bf 0") !== false){
-                            $speedArgs = str_replace("-bf 0", "", $speedArgs);
-                        }
-
-                        $speedArgsExplode = explode(' -', preg_replace('/\s+/', ' ', trim($speedArgs, " -")));
-                        $speedArgs = [];
-                        foreach($speedArgsExplode as $speedArg){
-                            $spacePos = strpos($speedArg, " ");
-                            $name = substr($speedArg, 0, $spacePos);
-                            $value = substr($speedArg, $spacePos+1);
-
-                            if(in_array($name, ["preset","tune","rc","multipass","bf"]) || in_array($name, $features)){
-                                $speedArgs[] = "-$name";
-                                $speedArgs[] = $value;
+                            if(strpos($speedArgs, "-bf 0") !== false){
+                                $speedArgs = str_replace("-bf 0", "", $speedArgs);
                             }
-                        }
 
-                    }
-                    else{
-                        $speedArgs = preg_split('/\s+/', trim($speedArgs));
-                    }
+                            $speedArgsExplode = explode(' -', preg_replace('/\s+/', ' ', trim($speedArgs, " -")));
+                            $speedArgs = [];
+                            foreach($speedArgsExplode as $speedArg){
+                                $spacePos = strpos($speedArg, " ");
+                                $name = substr($speedArg, 0, $spacePos);
+                                $value = substr($speedArg, $spacePos+1);
 
-                    foreach($speedArgs as $speedArg){
-                        if(substr($speedArg,0,1) === "-"){
-                            $arguments[] = $speedArg . ":v:" . $stream['typeIndex'];
+                                if(in_array($name, ["preset","tune","rc","multipass","bf"]) || in_array($name, $features)){
+                                    $speedArgs[] = "-$name";
+                                    $speedArgs[] = $value;
+                                }
+                            }
+
                         }
                         else{
-                            $arguments[] = $speedArg;
+                            $speedArgs = preg_split('/\s+/', trim($speedArgs));
                         }
+
+                        foreach($speedArgs as $speedArg){
+                            if(substr($speedArg,0,1) === "-"){
+                                $arguments[] = $speedArg . ":v:" . $stream['typeIndex'];
+                            }
+                            else{
+                                $arguments[] = $speedArg;
+                            }
+                        }
+                    }
+
+                    if(self::issetAndType($stream, "quality", "numeric")){
+                        $stream['quality'] = floatval($stream['quality']);
+
+                        if(!self::issetAndType($stream, "speed", "string") || !in_array(strtolower($stream['speed']), ["slower","slow","medium","fast","faster"])){
+                            $stream['speed'] = "medium";
+                        }
+
+                        $qualitySetting = "crf";
+                        if(self::issetAndType($videoFormats['notCrfEncoders'] ?? [], $stream['encoder'], "string")){
+                            $qualitySetting = $videoFormats['notCrfEncoders'][$stream['encoder']];
+                        }
+                        $qualitySettingValue = self::targetVmafToCrf($stream['encoder'], $stream['speed'], $stream['quality']);
+                        if($qualitySettingValue === null){
+                            mklog(3, "Could not find quality information for encoder " . $stream['encoder'] . " at speed " . $stream['speed']);
+                            return false;
+                        }
+                        if(self::issetAndType($videoFormats, "integerQualitySetting", "list")){
+                            if(in_array($stream['encoder'], $videoFormats['integerQualitySetting'])){
+                                $qualitySettingValue = round($qualitySettingValue);
+                            }
+                        }
+                        $arguments[] = "-$qualitySetting:" . $stream['type'] . ":" . $stream['typeIndex'];
+                        $arguments[] = $qualitySettingValue;
                     }
 
                     foreach(['range'=>'color_range', 'colorSpace'=>'colorspace', 'colorPrimaries'=>'color_primaries', 'gamma'=>'color_trc'] as $thingName => $thingFFName){
@@ -1183,6 +1187,11 @@ class video_encoder{
             $options['stopfile'] = "temp/video_encoder/stop";
         }
 
+        foreach($options['videoTypes'] as &$type){
+            $type = strtolower($type);
+        }
+        unset($type);
+
         $sourceFolder      = rtrim($sourceFolder,      '/\\ ');
         $destinationFolder = rtrim($destinationFolder, '/\\ ');
 
@@ -1204,7 +1213,7 @@ class video_encoder{
                 return $return;
             }
 
-            if(!file_exists($file) || !in_array(pathinfo($file, PATHINFO_EXTENSION), $options['videoTypes'])){
+            if(!file_exists($file) || !in_array(strtolower(pathinfo($file, PATHINFO_EXTENSION)), $options['videoTypes'])){
                 continue;
             }
 
@@ -1221,7 +1230,9 @@ class video_encoder{
                 }
             }
 
-            $fileExtenstion = pathinfo($file, PATHINFO_EXTENSION);
+            $options['outExtension'] = strtolower($options['outExtension']);
+
+            $fileExtenstion = strtolower(pathinfo($file, PATHINFO_EXTENSION));
             if($options['outExtension'] === "same"){
                 $outExtension = $fileExtenstion;
             }
@@ -1309,6 +1320,8 @@ class video_encoder{
                 mklog(2, "FolderEncode: Unable to remove source " . $info['original']);
             }
         }
+
+        files::ensureFolder(dirname($fullOutPath));
 
         if(!rename($fullTempPath, $fullOutPath)){
             mklog(2, "FolderEncode: Unable to rename temporary file to " . $fullOutPath);
@@ -1960,7 +1973,7 @@ class video_encoder{
      * @return null|float The crf like quality number that is expected to reach the target VMAF on success, null on failure.
      */
     public static function targetVmafToCrf(string $encoder, string $speed, float $targetVmaf):?float{
-        $vmafs = json::readFile("packages/video_encoder/videoEncoderVmafs.json");
+        $vmafs = json::readFile("packages/video_encoder/files/videoEncoderVmafs.json");
         if(!is_array($vmafs) || !isset($vmafs[$encoder][$speed]) || !is_array($vmafs[$encoder][$speed])){
             return null;
         }
@@ -1973,7 +1986,7 @@ class video_encoder{
      * @return null|array The information on success or null on failure.
      */
     public static function nvAllCapabilities():?array{
-        $data = json::readFile("packages/video_encoder/nvCapabilities.json");
+        $data = json::readFile("packages/video_encoder/files/nvCapabilities.json");
         if(!is_array($data) || empty($data)){
             return null;
         }
@@ -2026,7 +2039,7 @@ class video_encoder{
      * @return null|array The information on success or null on failure.
      */
     public static function extensionsAndFormats():?array{
-        $data = json::readFile("packages/video_encoder/extensionsAndFormats.json");
+        $data = json::readFile("packages/video_encoder/files/extensionsAndFormats.json");
         if(!is_array($data) || empty($data)){
             return null;
         }
@@ -2037,7 +2050,7 @@ class video_encoder{
      * @return null|array The information on success or null on failure.
      */
     public static function videoEncoders():?array{
-        $data = json::readFile("packages/video_encoder/videoEncoders.json");
+        $data = json::readFile("packages/video_encoder/files/videoEncoders.json");
         if(!is_array($data) || empty($data)){
             return null;
         }

@@ -1,7 +1,7 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 38,
+    "version": 39,
     "author": "tom",
     "description": "Updated to conductor client v5",
     "dependencies": {
