@@ -1,9 +1,9 @@
 {
     "id_name": "video_encoder",
     "name": "Video Encoder (Dev)",
-    "version": 39,
+    "version": 40,
     "author": "tom",
-    "description": "fixed encodeFolder and added unknown encoder path to encodeVideo and moved information files",
+    "description": "",
     "dependencies": {
         "settings": 2,
         "e_ffmpeg": 6,

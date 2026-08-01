@@ -963,7 +963,7 @@ class video_encoder{
             //Do metadata stuff and customArgs
             foreach($output['streams'] as $streamNumber => $stream){
                 if(self::issetAndType($stream, "metadata", "array")){
-                    foreach($output['metadata'] as $metadataName => $metadataValue){
+                    foreach($stream['metadata'] as $metadataName => $metadataValue){
                         if(!is_string($metadataName) || $metadataName === '' || strpos($metadataName, "=") !== false || !is_string($metadataValue)){
                             continue;
                         }
