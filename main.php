@@ -1382,7 +1382,7 @@ class video_encoder{
      * @return null|array The decoded json array ffprobe gives on success or null on failure.
      */
     public static function getVideoInfo(string $path):?array{
-        return self::ffprobeJson($path, '-show_format -show_streams');
+        return self::ffprobeJson($path, ['-show_format','-show_streams']);
     }
     /**
      * Uses ffprobe to get the first video streams keyframe information (-select_streams v:0 -show_entries frame=pkt_pts_time,pict_type -show_frames -skip_frame nokey).
@@ -1390,7 +1390,7 @@ class video_encoder{
      * @return null|array The decoded json array ffprobe would give on success or null on failure.
      */
     public static function getVideoKeyframeInfo(string $path):?array{
-        return self::ffprobeJson($path, '-select_streams v:0 -show_entries frame=pkt_pts_time,pict_type -show_frames -skip_frame nokey');
+        return self::ffprobeJson($path, ['-select_streams','v:0','-show_entries','frame=pkt_pts_time,pict_type','-show_frames','-skip_frame','nokey']);
     }
     /**
      * Gets the codec name of the first stream of a given type in a media file.
@@ -2229,18 +2229,44 @@ class video_encoder{
         }
         return $path . '/' . $name . '.json';
     }
-    private static function ffprobeJson(string $file, string $args):?array{
+    private static function ffprobeJson(string $file, array $args):?array{
         $ffprobePath = e_ffmpeg::path("ffprobe");
         if(!is_string($ffprobePath) || empty($ffprobePath)){
             return null;
         }
 
-        $result = shell_exec(files::validatePath($ffprobePath,true) . ' -v quiet ' . $args . ' -print_format json ' . files::validatePath($file,true));
-        if(!is_string($result)){
+        $command = [$ffprobePath, "-v", "quiet", "-print_format", "json"];
+
+        $command = array_merge($command, $args);
+
+        $command[] = $file;
+
+        $proc = proc_open($command, [['pipe','r'], ['pipe','w'], STDOUT], $pipes);
+        if(!is_resource($proc)){
+            mklog(3, "Failed to open ffprobe process");
             return null;
         }
 
-        $json = json_decode($result,true);
+        $result = "";
+        $tries = 0;
+        while(!feof($pipes[1]) && $tries < 100){//10 seconds for ffprobe to work
+            $result .= fread($pipes[1], 8192);
+            usleep(100000);
+            $tries++;
+        }
+
+        $exitCode = proc_close($proc);
+
+        if($exitCode !== 0){
+            mklog(3, "FFprobe exited with a non-zero code ($exitCode)");
+            return null;
+        }
+
+        if(empty($result)){
+            return null;
+        }
+
+        $json = json_decode($result, true);
         if(!is_array($json) || empty($json)){
             return null;
         }
